@@ -37,6 +37,13 @@
 
 (defvar *env-roots* (make-hash-table))
 
+
+(defmacro declaim-fact (&body fact-specifiers)
+  ;; declare global facts. Useful for stuff like the types
+  ;; of top level functions
+  fact-specifiers
+  nil)
+
 ;;------------------------------------------------------------
 
 (defun fact-expand (code &optional env)
