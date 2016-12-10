@@ -34,3 +34,6 @@
 
 (defun last1 (list)
   (car (last list)))
+
+(defun the-form-p (form)
+  (eq (first form) 'the))

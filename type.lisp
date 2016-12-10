@@ -16,8 +16,7 @@
 ;;------------------------------------------------------------
 
 (defclass check-environment ()
-  ((profile :initform nil :initarg :profile)
-   (parent :initform nil :initarg :parent)
+  ((parent :initform nil :initarg :parent)
    (bindings :initform nil :initarg :bindings)))
 
 (defclass var-fact-binding ()
@@ -26,25 +25,40 @@
 
 (defun env-bind (env bindings)
   (assert (every λ(typep _ 'var-fact-binding) bindings))
-  (make-instance 'check-environment
-                 :profile (slot-value env 'profile)
+  (make-instance (type-of env)
                  :parent env
                  :bindings bindings))
 
+(defun get-binding (name env)
+  (with-slots (bindings parent) env
+    (or (find name bindings :key #'name)
+        (when parent
+          (get-binding name parent)))))
+
+(defvar *env-roots* (make-hash-table))
+
 ;;------------------------------------------------------------
 
-(defun fact-expand (code env)
-  (typecase code
-    (symbol (fact-expand-symbol code env))
-    (list (fact-expand-form code env))
-    (otherwise `(the ,(infer code env) ,code))))
+(defun fact-expand (code &optional env)
+  (let ((env (etypecase env
+               (symbol (or (gethash env *env-roots*)
+                           (error "~a not a known checker" env)))
+               (check-environment env))))
+    (typecase code
+      (symbol (fact-expand-symbol code env))
+      (list (fact-expand-form code env))
+      (otherwise `(the ,(%infer code env) ,code)))))
 
 ;;------------------------------------------------------------
+;; vars
 
 (defun fact-expand-symbol (code env)
-  `(the ,(infer code env) ,code))
+  (let ((binding (get-binding code env)))
+    (assert binding () "Cant find ~a" code)
+    `(the ,(fact binding) ,code)))
 
 ;;------------------------------------------------------------
+;; special forms
 
 (defun fact-expand-form (code env)
   (dbind (name . args) code
@@ -52,11 +66,12 @@
       (let (fact-expand-let-form args env))
       (progn (fact-expand-progn-form args env))
       (quote (fact-expand-quote-form args env))
-      (funcall (fact-expand-funcall-form args env)))))
+      (funcall (fact-expand-funcall-form args env))
+      (function (fact-expand-function-form args env)))))
 
 (defun fact-expand-quote-form (args env)
   (assert (= (length args) 1))
-  (let ((fact (infer (first args) env)))
+  (let ((fact (%infer (first args) env)))
     `(quote (the ,fact ,@args))))
 
 (defun %fact-expand-progn-form (args env)
@@ -65,7 +80,7 @@
 (defun fact-expand-progn-form (args env)
   (let* ((code (%fact-expand-progn-form args env))
          (last-form (last1 code)))
-    (assert (eq 'the (first last-form)))
+    (assert (the-form-p (first last-form)))
     `(the ,(second last-form) (progn ,@code))))
 
 (defun fact-expand-let-form (args env)
@@ -73,7 +88,7 @@
              (dbind (n f) b
                (make-instance
                 'var-fact-binding
-                :name n :fact (infer f env)))))
+                :name n :fact (%infer f env)))))
     (dbind (bindings . body) args
       (let* ((var-fact-bindings (mapcar #'fact-expand-binding bindings))
              (lex-env (env-bind env var-fact-bindings))
@@ -85,23 +100,35 @@
                             bindings)
                 ,@body))))))
 
+(defun fact-expand-function-form (code env)
+  ;; should check global & local envs
+  (declare (ignore env))
+  (assert (= (length code) 1))
+  (let ((function (first code)))
+    `(the ,(make-instance 'fact) (function ,function))))
+
 (defun fact-expand-funcall-form (code env)
-  (dbind (func . args) code
-    (let* ((func-fact (infer func env))
-           (arg-facts (mapcar λ(infer _ env) args))
-           (return-fact (fact-expand-call func-fact arg-facts env)))
+  (dbind (func . args) (mapcar λ(fact-expand _ env) code)
+    (let* ((func-fact (second func))
+           (arg-facts (mapcar #'second args))
+           (return-fact (check-call func-fact arg-facts env)))
       `(the ,return-fact
-            (funcall (the ,func-fact ,func)
-                     ,@(mapcar λ`(the ,_ ,_1)
-                               arg-facts
-                               (rest code)))))))
+            (funcall ,func ,@args)))))
 
 ;;------------------------------------------------------------
+;; methods
+
+(defgeneric %fact-for (env &key))
+
+(defun %infer (code env)
+  (apply #'%fact-for env (multiple-value-list (infer code env))))
 
 (defmethod infer (code env)
-  (make-instance 'fact))
+  (error "No infer defined for ~a in ~a"
+         code (type-of env)))
 
-(defmethod fact-expand-call (func-fact arg-facts env)
-  (make-instance 'fact))
+(defmethod check-call (func-fact arg-facts env)
+  (error "No check-call defined for ~a with ~a in ~a"
+         func-fact arg-facts (type-of env)))
 
 ;;------------------------------------------------------------

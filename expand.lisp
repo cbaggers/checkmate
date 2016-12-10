@@ -31,6 +31,8 @@
     (ecase head
       ;; quote
       (quote code)
+      ;; function
+      (function code)
       ;; if
       (if (dbind (ts tn el) (rest code)
             `(if ,(expand-code ts)
