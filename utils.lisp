@@ -31,3 +31,6 @@
 
 (defun replace-at-n (seq n elem)
   (replace seq (list elem) :start1 n))
+
+(defun last1 (list)
+  (car (last list)))

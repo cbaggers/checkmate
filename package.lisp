@@ -1,4 +1,4 @@
 ;;;; package.lisp
 
 (defpackage #:checkmate
-  (:use #:cl))
+  (:use #:cl #:named-readtables))

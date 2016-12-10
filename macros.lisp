@@ -18,25 +18,15 @@
 
 ;;------------------------------------------------------------
 
-(defvar *ignored* nil)
-
-(defun make-known-to-ignore (name)
-  (pushnew name *ignored*)
-  (remove name *known-macros*))
-
-(defun checkmate-ignored-p (name)
-  (not (null (member name *ignored*))))
-
-;;------------------------------------------------------------
-
-(make-known-to-ignore 'progn)
-(make-known-to-ignore 'let)
-
 (def-static-macro let* (bindings &body body)
-  (if bindings
-      `(let (,(first bindings))
-         (let* ,(rest bindings)
-           ,@body))
-      `(progn ,@body)))
+  (cond
+    ((> (length bindings) 1)
+     `(let (,(first bindings))
+        (let* ,(rest bindings)
+          ,@body)))
+    ((= (length bindings) 1)
+     `(let ,bindings
+        ,@body))
+    (t `(progn ,@body))))
 
 ;;------------------------------------------------------------
