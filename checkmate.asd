@@ -1,16 +1,15 @@
 ;;;; checkmate.asd
 
 (asdf:defsystem #:checkmate
-  :description "Describe checkmate here"
-  :author "Your Name <your.name@example.com>"
-  :license "Specify license here"
+  :description "Experiment"
+  :author "Chris Bagley (techsnuffle) <techsnuffle@gmail.com>"
+  :license "BSD 2 Clause"
+  :depends-on (:fn
+               :optima
+               :fare-quasiquote-extras
+               :fiveam)
   :serial t
-  :depends-on (:fn)
   :components ((:file "package")
+               (:file "readtables")
                (:file "utils")
-               (:file "env")
-               (:file "macros")
-               (:file "base")
-               (:file "expand")
-               (:file "fact-check")
-               (:file "defchecker")))
+               (:file "env")))

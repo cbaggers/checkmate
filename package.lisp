@@ -1,4 +1,4 @@
 ;;;; package.lisp
 
-(defpackage #:checkmate
-  (:use #:cl #:named-readtables))
+(uiop:define-package #:checkmate
+    (:use #:cl #:named-readtables))
