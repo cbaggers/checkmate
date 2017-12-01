@@ -40,6 +40,7 @@
            ,@body)
         `(progn ,@body))))
 
+#+nil
 (defun foo ()
   (checkmate ()
     10
