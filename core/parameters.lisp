@@ -75,31 +75,36 @@
 
 ;;------------------------------------------------------------
 
+(defun make-parameter-type-spec (name valid-p equal)
+  (assert (not (eq name 'ttype)))
+  (assert (and (symbolp name) (not (keywordp name))))
+  (let ((valid-p (or valid-p #'identity)))
+    (labels ((to-param (spec val)
+               (assert (eq (slot-value spec 'name) name))
+               (assert (funcall valid-p val) ()
+                       "~a is not a valid value to make a ~a type parameter"
+                       val name)
+               (take-ref
+                (make-instance 'ttype-parameter
+                               :name name
+                               :spec spec
+                               :value val))))
+      (make-instance 'ttype-parameter-spec
+                     :name name
+                     :unify (lambda (a b mut-p)
+                              (declare (ignore mut-p))
+                              (funcall equal a b))
+                     :to-param #'to-param))))
+
 (defmacro define-parameter-type (name
                                  &body rest
                                  &key valid-p equal)
   (declare (ignore rest))
   (assert (not (eq name 'ttype)))
   (assert (and (symbolp name) (not (keywordp name))))
-  `(let ((valid-p (or ,valid-p #'identity))
-         (param-equal-p ,equal))
-     (labels ((to-param (spec val)
-                (assert (eq (slot-value spec 'name) ',name))
-                (assert (funcall valid-p val) ()
-                        "~a is not a valid value to make a ~a type parameter"
-                        val ',name)
-                (take-ref
-                 (make-instance 'ttype-parameter
-                                :name ',name
-                                :spec spec
-                                :value val))))
-       (register-parameter-type
-        (make-instance 'ttype-parameter-spec
-                       :name ',name
-                       :unify (lambda (a b mut-p)
-                                (declare (ignore mut-p))
-                                (funcall param-equal-p a b))
-                       :to-param #'to-param))
-       ',name)))
+  `(progn
+     (register-parameter-type
+      (make-parameter-type-spec ',name ,valid-p ,equal))
+     ',name))
 
 ;;------------------------------------------------------------
