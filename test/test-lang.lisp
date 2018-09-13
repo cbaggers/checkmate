@@ -18,7 +18,7 @@
                      (declare (ignore this))
                      (let ((implements
                             (cdr (assoc 'implements
-                                         (ttype-custom-data type-ref)))))
+                                         (custom-data type-ref)))))
                        (find 'disposable implements))))
 
 (define-constraint (breen foo)
