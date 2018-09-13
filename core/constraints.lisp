@@ -2,24 +2,25 @@
 
 ;;------------------------------------------------------------
 
-(defun populate-constraint (constraint-ref named-unknowns)
+(defun populate-constraint (type-system constraint-ref named-unknowns)
   (let ((designator (slot-value constraint-ref 'designator)))
     (destructuring-bind (principle-name . args)
         (uiop:ensure-list designator)
       (declare (ignore principle-name))
       (assert (not (unknown-designator-name-p designator)) ()
               "Constraint cannot be unknown")
-      (let ((spec (get-constraint-spec designator)))
+      (let ((spec (get-constraint-spec type-system designator)))
         (setf (deref constraint-ref)
-              (funcall (slot-value spec 'desig-to-constraint)
-                       spec
-                       named-unknowns
-                       args))))))
+              (to-constraint type-system
+                             spec
+                             named-unknowns
+                             args))))))
 
-(defun to-constraint (spec named-unknowns args)
+(defun to-constraint (type-system spec named-unknowns args)
   (with-slots (arg-param-specs) spec
     (let* ((constructed
-            (construct-designator-args spec
+            (construct-designator-args type-system
+                                       spec
                                        named-unknowns
                                        nil
                                        args))
@@ -32,7 +33,8 @@
                      :name (slot-value spec 'name)
                      :arg-vals vals))))
 
-(defun make-constraint-spec (designator
+(defun make-constraint-spec (type-system
+                             designator
                              where
                              satifies-this-p
                              custom-spec-data)
@@ -43,32 +45,17 @@
            (params
             (loop
                :for arg :in req-args
-               :collect (get-parameter-type-spec
+               :collect (%get-parameter-spec
+                         type-system
                          (or (second (find arg where :key #'first))
                              'ttype)))))
       (make-instance
        'constraint-spec
        :name name
        :satisfies satifies-this-p
-       :desig-to-constraint #'to-constraint
        :custom-data custom-spec-data
        :arg-param-specs (make-array (length params)
                                     :initial-contents params)))))
-
-(defmacro define-constraint (designator
-                             &body rest
-                             &key where satifies-this-p
-                               custom-spec-data)
-  (declare (ignore rest))
-  (destructuring-bind (name . rest) (uiop:ensure-list designator)
-    (declare (ignore rest))
-    `(progn
-       (register-constraint
-        (make-constraint-spec ',designator
-                              ',where
-                              ,satifies-this-p
-                              ',custom-spec-data))
-       ',name)))
 
 ;;------------------------------------------------------------
 

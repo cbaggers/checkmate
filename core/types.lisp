@@ -4,7 +4,8 @@
 ;; Contexts
 
 (defclass check-context ()
-  ((function-types :initform nil :initarg :function-types)
+  ((type-system :initarg :type-system)
+   (function-types :initform nil :initarg :function-types)
    (variable-bindings :initform nil :initarg :variable-bindings)
    (parent :initform nil :initarg :parent)))
 
@@ -14,7 +15,6 @@
 (defclass user-ttype-spec ()
   ((name :initarg :name)
    (arg-param-specs :initarg :arg-param-specs)
-   (desig-to-type :initarg :desig-to-type)
    (custom-data :initarg :custom-data :initform nil)))
 
 (defclass ttype ()
@@ -44,7 +44,7 @@
 (defclass ttype-parameter-spec ()
   ((name :initarg :name)
    (unify :initarg :unify)
-   (to-param :initarg :to-param)))
+   (valid-p :initarg :valid-p)))
 
 (defclass ttype-parameter ()
   ((name :initarg :name)
@@ -66,7 +66,6 @@
   ((name :initarg :name)
    (init :initarg :init)
    (satisfies :initarg :satisfies)
-   (desig-to-constraint :initarg :desig-to-constraint)
    (arg-param-specs :initarg :arg-param-specs)
    (custom-data :initarg :custom-data :initform nil)))
 

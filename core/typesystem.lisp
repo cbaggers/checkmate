@@ -2,66 +2,45 @@
 
 ;;------------------------------------------------------------
 
-(defvar *registered-user-types* (make-hash-table :test #'eq))
-(defvar *registered-parameter-types* (make-hash-table :test #'eq))
-(defvar *registered-constraints* (make-hash-table :test #'eq))
+(defclass type-system () (name))
 
-(defvar *last-dropped-type* nil)
-(defvar *last-dropped-constraint* nil)
-(defvar *last-dropped-parameter-type* nil)
+(defvar *registered-type-systems*
+  (make-hash-table :test #'eq))
 
-(defgeneric register-type (type-spec)
-  (:method (spec)
-    ;; this ↓ is just for debugging
-    (setf *last-dropped-type* spec)
-    (warn "register-type is not implemented")))
+(defun register-type-system (name)
+  (assert (subtypep 'staticl 'type-system))
+  (when (gethash name *registered-type-systems*)
+    (warn ";; Redefining type system: ~a" name))
+  (setf (gethash name *registered-type-systems*)
+        (make-instance name))
+  name)
 
-(defgeneric register-constraint (type-spec)
-  (:method (spec)
-    ;; this ↓ is just for debugging
-    (setf *last-dropped-constraint* spec)
-    (warn "register-type is not implemented")))
+(defmacro define-type-system (name)
+  `(progn
+     (defclass ,name (type-system)
+       ((name :initform ',name)))
+     (register-type-system ',name)
+     ',name))
 
-(defgeneric register-parameter-type (parameter-type-spec)
-  (:method (spec)
-    ;; this ↓ is just for debugging
-    (setf *last-dropped-parameter-type* spec)
-    (warn "register-parameter-type is not implemented")))
-
-(defmethod register-type (spec)
-  (with-slots (name) spec
-    (format t "~%;; Registered type ~a" name)
-    (setf (gethash name *registered-user-types*) spec)))
-
-(defmethod register-constraint (spec)
-  (with-slots (name) spec
-    (format t "~%;; Registered constraint ~a" name)
-    (setf (gethash name *registered-constraints*) spec)))
-
-(defmethod register-parameter-type (spec)
-  (with-slots (name) spec
-    (format t "~%;; Registered param type ~a" name)
-    (setf (gethash name *registered-parameter-types*) spec)))
+(defgeneric get-type-spec (type-system designator))
+(defgeneric get-constraint-spec (type-system designator))
+(defgeneric get-parameter-spec (type-system name))
 
 ;;------------------------------------------------------------
 
-(defun get-user-type-spec (designator)
-  (let ((principle-name (first (alexandria:ensure-list designator))))
-    (or (gethash principle-name *registered-user-types*)
-        (error "Could not identify type for designator: ~a"
-               designator))))
+(defun find-type-system (name)
+  (or (gethash name *registered-type-systems*)
+      (error "Checkmate: No known typesystem called ~a" name)))
 
-(defun get-parameter-type-spec (name)
-  (or (gethash name *registered-parameter-types*)
-      (error
-       "define-ttype: ~a is not valid designator arg type.~%valid:~a"
-       name (alexandria:hash-table-keys *registered-parameter-types*))))
-
-(defun get-constraint-spec (designator)
-  (let ((principle-name (first (alexandria:ensure-list designator))))
-    (or (gethash principle-name
-                 *registered-constraints*)
-        (error "Could not identify constraint for designator: ~a"
-               designator))))
+(defun type-system-name (type-system)
+  (check-type type-system type-system)
+  (slot-value type-system 'name))
 
 ;;------------------------------------------------------------
+
+(defvar *ttype-param-spec*)
+
+(defun %get-parameter-spec (type-system name)
+  (if (eq name 'ttype)
+      *ttype-param-spec*
+      (get-parameter-spec type-system name)))

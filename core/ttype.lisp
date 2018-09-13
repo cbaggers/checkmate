@@ -2,18 +2,20 @@
 
 ;;------------------------------------------------------------
 
-(defmacro ttype (designator)
-  (designator->type designator))
+(defmacro ttype (type-system-designator designator)
+  (designator->type (find-type-system type-system-designator)
+                    designator))
 
 (defun ttype-of (type-ref)
   (with-slots (target) type-ref
     (with-slots (spec) target
       (designator-from-type target))))
 
-(defun to-type (spec named-unknowns constraints args)
+(defun to-type (type-system spec named-unknowns constraints args)
   (with-slots (arg-param-specs) spec
     (let* ((constructed
-            (construct-designator-args spec
+            (construct-designator-args type-system
+                                       spec
                                        named-unknowns
                                        constraints
                                        args))
@@ -33,7 +35,10 @@
                       :arg-vals vals
                       :known-complete already-complete)))))
 
-(defun make-ttype-spec (designator where custom-spec-data)
+(defun make-ttype-spec (type-system
+                        designator
+                        where
+                        custom-spec-data)
   (destructuring-bind (name . designator-args)
       (uiop:ensure-list designator)
     (let* ((req-args
@@ -41,28 +46,16 @@
            (params
             (loop
                :for arg :in req-args
-               :collect (get-parameter-type-spec
+               :collect (%get-parameter-spec
+                         type-system
                          (or (second (find arg where :key #'first))
                              'ttype)))))
       (make-instance
        'user-ttype-spec
        :name name
-       :desig-to-type #'to-type
        :custom-data custom-spec-data
        :arg-param-specs (make-array (length params)
                                     :initial-contents params)))))
-
-(defmacro define-ttype (designator
-                        &body rest
-                        &key where custom-spec-data)
-  (declare (ignore rest))
-  (destructuring-bind (name . rest) (uiop:ensure-list designator)
-    (declare (ignore rest))
-    `(progn
-       (register-type
-        (make-ttype-spec
-         ',designator ',where ',custom-spec-data))
-       ',name)))
 
 (defun designator-from-type (type)
   (check-type type ttype)
@@ -89,10 +82,13 @@
 
 ;;------------------------------------------------------------
 
-(defun designator->type (type-designator)
-  (internal-designator-to-type nil nil type-designator))
+(defun designator->type (type-system type-designator)
+  (internal-designator-to-type type-system nil nil type-designator))
 
-(defun internal-designator-to-type (named-unknowns constraints designator)
+(defun internal-designator-to-type (type-system
+                                    named-unknowns
+                                    constraints
+                                    designator)
   (destructuring-bind (principle-name . args)
       (uiop:ensure-list designator)
     (case principle-name
@@ -106,9 +102,11 @@
        (assert (= (length designator) 3))
        (take-ref (make-instance
                   'tfunction
-                  :arg-types (mapcar #'designator->type
+                  :arg-types (mapcar (lambda (x)
+                                       (designator->type type-system x))
                                      (second designator))
                   :return-type (designator->type
+                                type-system
                                 (third designator)))))
       ;;
       ;; is a user type or unknown
@@ -125,9 +123,9 @@
                      (make-unknown (gethash designator constraints))))
            ;;
            ;; user type
-           (let ((type-spec (get-user-type-spec designator)))
-             ;; note: desig-to-type does return a ref
-             (funcall (slot-value type-spec 'desig-to-type)
+           (let ((type-spec (get-type-spec type-system designator)))
+             ;; note: to-type does return a ref
+             (to-type type-system
                       type-spec
                       named-unknowns
                       constraints

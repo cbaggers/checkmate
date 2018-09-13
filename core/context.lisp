@@ -2,8 +2,10 @@
 
 ;;------------------------------------------------------------
 
-(defun make-check-context ()
-  (make-instance 'check-context))
+(defun make-check-context (type-system-designator)
+  (let ((tsys (find-type-system type-system-designator)))
+    (make-instance 'check-context
+                   :type-system tsys)))
 
 (defun get-function-type (context name)
   (labels ((inner (context)

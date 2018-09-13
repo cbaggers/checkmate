@@ -2,7 +2,8 @@
 
 ;;------------------------------------------------------------
 
-(defun construct-designator-args (type-spec
+(defun construct-designator-args (type-system
+                                  type-spec
                                   named-unknowns
                                   constraints
                                   vals)
@@ -50,9 +51,9 @@
                                (make-unknown-param))))))
              ;;
              ;; param type
-             (funcall (slot-value param-spec 'to-param)
-                      param-spec
-                      val)))))
+             (to-param type-system
+                       param-spec
+                       val)))))
 
 ;;------------------------------------------------------------
 
@@ -74,36 +75,32 @@
 
 ;;------------------------------------------------------------
 
-(defun make-parameter-type-spec (name valid-p equal)
-  (assert (not (eq name 'ttype)))
-  (assert (and (symbolp name) (not (keywordp name))))
-  (let ((valid-p (or valid-p #'identity)))
-    (labels ((to-param (spec val)
-               (assert (eq (slot-value spec 'name) name))
-               (assert (funcall valid-p val) ()
-                       "~a is not a valid value to make a ~a type parameter"
-                       val name)
-               (take-ref
-                (make-instance 'ttype-parameter
-                               :name name
-                               :spec spec
-                               :value val))))
-      (make-instance 'ttype-parameter-spec
-                     :name name
-                     :unify (lambda (a b mut-p)
-                              (declare (ignore mut-p))
-                              (funcall equal a b))
-                     :to-param #'to-param))))
+(defun ttype-designator-to-param (type-system val)
+  (designator->type type-system val))
 
-(defmacro define-parameter-type (name
-                                 &body rest
-                                 &key valid-p equal)
-  (declare (ignore rest))
+(defun to-param (type-system spec val)
+  (let ((name (slot-value spec 'name)))
+    (if (eq name 'ttype)
+        (ttype-designator-to-param type-system val)
+        (let ((valid-p (slot-value spec 'valid-p)))
+          (assert (funcall valid-p val) ()
+                  "~a is not a valid value to make a ~a type parameter"
+                  val name)
+          (take-ref
+           (make-instance 'ttype-parameter
+                          :name name
+                          :spec spec
+                          :value val))))))
+
+(defun make-parameter-spec (type-system name valid-p equal)
+  (declare (ignore type-system))
   (assert (not (eq name 'ttype)))
   (assert (and (symbolp name) (not (keywordp name))))
-  `(progn
-     (register-parameter-type
-      (make-parameter-type-spec ',name ,valid-p ,equal))
-     ',name))
+  (make-instance 'ttype-parameter-spec
+                 :name name
+                 :unify (lambda (a b mut-p)
+                          (declare (ignore mut-p))
+                          (funcall equal a b))
+                 :valid-p (or valid-p #'identity)))
 
 ;;------------------------------------------------------------

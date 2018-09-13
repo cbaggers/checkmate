@@ -32,17 +32,18 @@
 
 (defgeneric infer-literal (context expression)
   (:method (c e)
-    (error "Could not infer a type for literal ~a given env ~a" c e)))
+    (error "Could not infer a type for literal ~a given env ~a"
+           c e)))
 
 (defmethod infer-literal (context (expression symbol))
-  (declare (ignore context))
   (assert (or (eq expression t)
               (eq expression nil)))
-  `(truly-the ,(designator->type 'boolean) ,expression))
+  (with-slots (type-system) context
+    `(truly-the ,(designator->type type-system 'boolean) ,expression)))
 
 (defmethod infer-literal (context (expression integer))
-  (declare (ignore context))
-  `(truly-the ,(designator->type 'integer) ,expression))
+  (with-slots (type-system) context
+    `(truly-the ,(designator->type type-system 'integer) ,expression)))
 
 ;;------------------------------------------------------------
 
@@ -97,22 +98,24 @@
     `(truly-the ,ftype (function ,function-designator))))
 
 (defun infer-if (context test then else)
-  (let* (;; {TODO} support any object in test
-         (typed-test (check context test (designator->type 'tboolean)))
-         ;; {TODO} can we support 'or' types here?
-         (typed-then (infer context then))
-         (let-type (type-of-typed-expression typed-then))
-         (typed-else (check context else let-type)))
-    `(truly-the ,let-type
-                (if ,typed-test
-                    ,typed-then
-                    ,typed-else))))
+  (with-slots (type-system) context
+    (let* (;; {TODO} support any object in test
+           (typed-test
+            (check context test (designator->type type-system 'tboolean)))
+           ;; {TODO} can we support 'or' types here?
+           (typed-then (infer context then))
+           (let-type (type-of-typed-expression typed-then))
+           (typed-else (check context else let-type)))
+      `(truly-the ,let-type
+                  (if ,typed-test
+                      ,typed-then
+                      ,typed-else)))))
 
 (defun infer-construct (context designator form)
   ;; Acts as no-op. The form is correctly types so return as is
-  (declare (ignore context))
-  (let ((type (designator->type designator)))
-    `(truly-the ,type ,form)))
+  (with-slots (type-system) context
+    (let ((type (designator->type type-system designator)))
+      `(truly-the ,type ,form))))
 
 (defun infer-truly-the (context type form)
   ;; Acts as no-op. The form is correctly types so return as is
@@ -121,10 +124,11 @@
   `(truly-the ,type ,form))
 
 (defun infer-the (context type-designator form)
-  (let* ((type (designator->type type-designator))
-         (typed-form (check context form type)))
-    (assert (eq 'truly-the (first typed-form)))
-    `(truly-the ,type ,(third typed-form))))
+  (with-slots (type-system) context
+    (let* ((type (designator->type type-system type-designator))
+           (typed-form (check context form type)))
+      (assert (eq 'truly-the (first typed-form)))
+      `(truly-the ,type ,(third typed-form)))))
 
 (defun infer-progn (context body)
   (let* ((butlast
@@ -188,10 +192,13 @@
           (parse-declarations declarations args)
         (let ((processed-args
                (process-function-arg-specs
-                args constraints-lookup named-unknowns)))
+                context args constraints-lookup named-unknowns)))
           (loop
              :for constraint :in constraints
-             :do (populate-constraint constraint named-unknowns))
+             :do (populate-constraint
+                  (slot-value context 'type-system)
+                  constraint
+                  named-unknowns))
           (let* ((body-context (add-bindings context processed-args))
                  (typed-body (infer body-context `(progn ,@body)))
                  (arg-types (mapcar #'second processed-args))
@@ -205,18 +212,23 @@
                 ,@declarations
                 ,typed-body))))))))
 
-(defun process-function-arg-specs (arg-specs constraints named-unknowns)
-  (loop
-     :for spec :in arg-specs
-     :for (name type) := spec
-     :collect (list name
-                    (if type
-                        (internal-designator-to-type named-unknowns
-                                                     constraints
-                                                     type)
-                        (let ((constraints-for-this
-                               (gethash type constraints)))
-                          (make-unknown constraints-for-this))))))
+(defun process-function-arg-specs (context
+                                   arg-specs
+                                   constraints
+                                   named-unknowns)
+  (with-slots (type-system) context
+    (loop
+       :for spec :in arg-specs
+       :for (name type) := spec
+       :collect (list name
+                      (if type
+                          (internal-designator-to-type type-system
+                                                       named-unknowns
+                                                       constraints
+                                                       type)
+                          (let ((constraints-for-this
+                                 (gethash type constraints)))
+                            (make-unknown constraints-for-this)))))))
 
 ;; {TODO} handle AND types
 ;; {TODO} this assumes only regular args (no &key &optional etc)
