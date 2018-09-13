@@ -6,4 +6,23 @@
   :license "BSD 2 Clause"
   :serial t
   :depends-on (:alexandria)
-  :components ((:file "package")))
+  :components ((:file "package")
+               (:file "core/utils")
+               (:file "core/types")
+               (:file "core/context")
+               (:file "core/completeness")
+               (:file "core/typed-expression")
+               (:file "core/refs")
+               (:file "core/unknowns")
+               (:file "core/parameters")
+               ;;
+               (:file "core/typesystem")
+               (:file "core/common")
+               (:file "core/constraints")
+               (:file "core/ttype")
+               ;;
+               (:file "core/unify")
+               (:file "core/ttype-param")
+               (:file "core/check-and-infer")
+               ;;
+               (:file "core/print")))
