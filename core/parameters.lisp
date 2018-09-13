@@ -68,10 +68,9 @@
     (assert (not rest-parameters-name))
     (assert (not optional-parameters))
     (assert (not has-allow-other-keys-p))
-    (assert (not (has-duplicates-p (append required-parameters
-                                           keyword-parameters))))
-    (list required-parameters
-          (sort keyword-parameters #'string< :key #'first))))
+    (assert (not keyword-parameters))
+    (assert (not (has-duplicates-p required-parameters)))
+    (list required-parameters)))
 
 ;;------------------------------------------------------------
 

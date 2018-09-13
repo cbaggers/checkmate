@@ -13,7 +13,6 @@
 
 (defclass user-ttype-spec ()
   ((name :initarg :name)
-   (init :initarg :init)
    (arg-param-specs :initarg :arg-param-specs)
    (desig-to-type :initarg :desig-to-type)
    (custom-data :initarg :custom-data :initform nil)))

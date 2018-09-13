@@ -6,6 +6,7 @@
   (let ((designator (slot-value constraint-ref 'designator)))
     (destructuring-bind (principle-name . args)
         (uiop:ensure-list designator)
+      (declare (ignore principle-name))
       (assert (not (unknown-designator-name-p designator)) ()
               "Constraint cannot be unknown")
       (let ((spec (get-constraint-spec designator)))
@@ -15,60 +16,59 @@
                        named-unknowns
                        args))))))
 
+(defun to-constraint (spec named-unknowns args)
+  (with-slots (arg-param-specs) spec
+    (let* ((constructed
+            (construct-designator-args spec
+                                       named-unknowns
+                                       nil
+                                       args))
+           (vals
+            (make-array
+             (length constructed)
+             :initial-contents constructed)))
+      (make-instance 'constraint
+                     :spec spec
+                     :name (slot-value spec 'name)
+                     :arg-vals vals))))
+
+(defun make-constraint-spec (designator
+                             where
+                             satifies-this-p
+                             custom-spec-data)
+  (destructuring-bind (name . designator-args)
+      (uiop:ensure-list designator)
+    (let* ((req-args
+            (parse-ttype-lambda-list designator-args))
+           (params
+            (loop
+               :for arg :in req-args
+               :collect (get-parameter-type-spec
+                         (or (second (find arg where :key #'first))
+                             'ttype)))))
+      (make-instance
+       'constraint-spec
+       :name name
+       :satisfies satifies-this-p
+       :desig-to-constraint #'to-constraint
+       :custom-data custom-spec-data
+       :arg-param-specs (make-array (length params)
+                                    :initial-contents params)))))
+
 (defmacro define-constraint (designator
                              &body rest
                              &key where satifies-this-p
                                custom-spec-data)
   (declare (ignore rest))
-  (destructuring-bind (name . designator-args)
-      (uiop:ensure-list designator)
-    (destructuring-bind (req-args key-forms)
-        (parse-ttype-lambda-list designator-args)
-      (let* ((req-len (length req-args))
-             (key-len (length key-forms))
-             (args-len (+ req-len key-len))
-             (key-args (mapcar #'first key-forms))
-             (args (append req-args key-args))
-             (where (loop :for arg :in args
-                       :collect (or (find arg where :key #'first)
-                                    (list arg 'ttype))))
-             (arg-param-types (mapcar #'second where)))
-        (alexandria:with-gensyms (gconstraint-spec)
-          `(let ((satisfies ,satifies-this-p))
-             (labels ((destructure-args (args)
-                        (destructuring-bind (,@req-args &key ,@key-forms)
-                            args
-                          (list ,@req-args ,@key-args)))
-                      (to-constraint (,gconstraint-spec
-                                      named-unknowns
-                                      args)
-                        (assert (eq (slot-value ,gconstraint-spec 'name)
-                                    ',name))
-                        (let ((args (destructure-args args)))
-                          (let ((vals (make-array
-                                       ,args-len
-                                       :initial-contents
-                                       (construct-designator-args ,gconstraint-spec
-                                                                 named-unknowns
-                                                                 nil
-                                                                 args))))
-                            (make-instance 'constraint
-                                           :spec ,gconstraint-spec
-                                           :name ',name
-                                           :arg-vals vals)))))
-               (register-constraint
-                (let ((arg-param-specs
-                       (make-array ,(length arg-param-types)
-                                   :initial-contents
-                                   (mapcar #'get-parameter-type-spec
-                                           ',arg-param-types))))
-                  (make-instance 'constraint-spec
-                                 :name ',name
-                                 :satisfies satisfies
-                                 :arg-param-specs arg-param-specs
-                                 :desig-to-constraint #'to-constraint
-                                 :custom-data ',custom-spec-data)))
-               ',name)))))))
+  (destructuring-bind (name . rest) (uiop:ensure-list designator)
+    (declare (ignore rest))
+    `(progn
+       (register-constraint
+        (make-constraint-spec ',designator
+                              ',where
+                              ,satifies-this-p
+                              ',custom-spec-data))
+       ',name)))
 
 ;;------------------------------------------------------------
 
