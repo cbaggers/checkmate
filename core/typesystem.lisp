@@ -25,6 +25,8 @@
 (defgeneric get-type-spec (type-system designator))
 (defgeneric get-constraint-spec (type-system designator))
 (defgeneric get-parameter-spec (type-system name))
+(defgeneric get-top-level-function-type (type-system name))
+(defgeneric get-top-level-var-type (type-system name))
 
 ;;------------------------------------------------------------
 
