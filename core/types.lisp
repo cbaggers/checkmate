@@ -77,3 +77,9 @@
 (defclass constraint-ref ()
   ((target :initarg :spec)
    (designator :initarg :designator)))
+
+;;------------------------------------------------------------
+;; Generalized Function Types
+
+(defclass generalized-function-type ()
+  ((type :initarg :type)))
