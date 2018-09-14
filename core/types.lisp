@@ -57,7 +57,7 @@
 
 (defclass unknown-param (ttype-parameter)
   ((name :initform (gensym "?UP"))
-   (value :initform nil)))
+   (value :initform nil :initarg :value)))
 
 ;;------------------------------------------------------------
 ;; Constraints
