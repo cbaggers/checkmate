@@ -19,13 +19,12 @@
 
 (defclass ttype ()
   ((refs :initform nil)
-   (known-complete :initform nil)))
+   (known-complete :initarg :known-complete :initform nil)))
 
 (defclass user-ttype (ttype)
   ((spec :initarg :spec)
    (name :initarg :name)
-   (arg-vals :initarg :arg-vals)
-   (known-complete :initarg :known-complete :initform nil)))
+   (arg-vals :initarg :arg-vals)))
 
 (defclass type-ref ()
   ((target :initarg :target)))
@@ -75,7 +74,7 @@
    (arg-vals :initarg :arg-vals)))
 
 (defclass constraint-ref ()
-  ((target :initarg :spec)
+  ((target :initarg :target)
    (designator :initarg :designator)))
 
 ;;------------------------------------------------------------

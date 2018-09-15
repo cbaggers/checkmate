@@ -8,6 +8,7 @@
                                   constraints
                                   vals)
   (with-slots (name arg-param-specs) type-spec
+    (assert (= (length arg-param-specs) (length vals)))
     (loop
        :for val :in vals
        :for param-spec :across arg-param-specs
@@ -71,7 +72,7 @@
     (assert (not has-allow-other-keys-p))
     (assert (not keyword-parameters))
     (assert (not (has-duplicates-p required-parameters)))
-    (list required-parameters)))
+    required-parameters))
 
 ;;------------------------------------------------------------
 

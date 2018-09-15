@@ -26,8 +26,7 @@
          (with-slots (constraints) type
            (let ((new (make-unknown
                        (mapcar (lambda (c)
-                                 (take-ref
-                                  (%copy-constraint (deref c) seen)))
+                                 (%copy-constraint c seen))
                                constraints))))
              (setf (gethash type seen) (deref new))
              new))))
@@ -63,8 +62,9 @@
       (loop
          :for arg :across args
          :for i :from 0
-         :do (setf (aref result 0)
-                   (copy-arg (deref arg)))))))
+         :do (setf (aref result i)
+                   (copy-arg (deref arg))))
+      result)))
 
 (defun %copy-param (param seen)
   (take-ref
@@ -87,18 +87,20 @@
 ;; {TODO} constraint-ref holds designator, should probably copy
 (defun copy-constraint (constraint-ref)
   (check-type constraint-ref constraint-ref)
-  (%copy-constraint (deref constraint-ref)
+  (%copy-constraint constraint-ref
                     (make-hash-table)))
 
-(defun %copy-constraint (constraint seen)
-  (check-type constraint constraint)
-  (make-instance
-   'constraint-ref
-   :target
-   (or (gethash constraint seen)
-       (setf (gethash constraint seen)
-             (with-slots (spec name arg-vals) constraint
-               (make-instance 'constraint
-                              :spec spec
-                              :name name
-                              :arg-vals (copy-type-args arg-vals seen)))))))
+(defun %copy-constraint (constraint-ref seen)
+  (check-type constraint-ref constraint-ref)
+  (let ((constraint (deref constraint-ref)))
+    (make-instance
+     'constraint-ref
+     :designator (copy-tree (slot-value constraint-ref 'designator))
+     :target
+     (or (gethash constraint seen)
+         (setf (gethash constraint seen)
+               (with-slots (spec name arg-vals) constraint
+                 (make-instance 'constraint
+                                :spec spec
+                                :name name
+                                :arg-vals (copy-type-args arg-vals seen))))))))
