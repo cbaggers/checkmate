@@ -77,7 +77,7 @@
                (loop
                   :for constraint :in constraints
                   :unless (unifies-with-constraint constraint)
-                  :collect (slot-value constraint 'name))))
+                  :collect (slot-value (deref constraint) 'name))))
           (when failed
             (error "Type ~a failed to satisfy the following constraints:~%~{~a~}"
                    type-ref failed))))))

@@ -162,7 +162,9 @@
           (destructuring-bind (typed-arg-forms return-type)
               (check-funcall context func-type arg-forms
                              `(,name ,@arg-forms))
-            `(truly-the ,return-type (,name ,@typed-arg-forms))))
+            `(truly-the ,return-type
+                        (funcall (truly-the ,func-type-ref (function ,name))
+                                 ,@typed-arg-forms))))
         (error "Could not find function for call in scope: ~a~%given context:~a"
                `(,name ,@arg-forms)
                context))))
@@ -172,11 +174,12 @@
          (arg-types (loop
                        :repeat arg-len
                        :collect (make-unknown)))
-         (check-type (take-ref (make-instance
-                                'tfunction
-                                :arg-types arg-types
-                                :return-type (make-unknown))))
-         (typed-func-form (check context func-form check-type)))
+         (check-type (make-instance
+                      'tfunction
+                      :arg-types arg-types
+                      :return-type (make-unknown)))
+         (check-type-ref (take-ref check-type))
+         (typed-func-form (check context func-form check-type-ref)))
     (destructuring-bind (typed-arg-forms return-type)
         (check-funcall context check-type arg-forms
                        `(funcall ,func-form ,@arg-forms))
