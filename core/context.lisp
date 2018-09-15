@@ -9,9 +9,10 @@
 
 (defun get-function-type (context name)
   (labels ((inner (context)
-             (with-slots (function-types parent) context
+             (with-slots (function-types parent type-system) context
                (or (when function-types (gethash name function-types))
-                   (when parent (inner parent))))))
+                   (when parent (inner parent))
+                   (get-top-level-function-type type-system name)))))
     (inner context)))
 
 (defun get-binding (context name)
@@ -26,6 +27,7 @@
   (let ((bindings (make-hash-table)))
     (setf (gethash name bindings) type)
     (make-instance 'check-context
+                   :type-system (slot-value context 'type-system)
                    :variable-bindings bindings
                    :parent context)))
 
@@ -37,6 +39,7 @@
          (assert (typep type 'type-ref))
          (setf (gethash name bindings) type))
     (make-instance 'check-context
+                   :type-system (slot-value context 'type-system)
                    :variable-bindings bindings
                    :parent context)))
 

@@ -79,10 +79,8 @@
       (quote
        (assert (= (length args) 1))
        (infer-quote-form context (first args)))
-      (infer-function-call context name args)
-      (otherwise (error "Could not infer a type for: ~a~%given context:~a"
-                        `(,name ,@args)
-                        context)))))
+      (otherwise
+       (infer-function-call context name args)))))
 
 ;;------------------------------------------------------------
 
@@ -156,31 +154,49 @@
                   (let ,inferred-decls
                     ,typed-body)))))
 
+(defun infer-function-call (context name arg-forms)
+  (let ((func-type (get-function-type context name)))
+    (if func-type
+        (let* ((func-type-ref (instantiate-function-type func-type))
+               (func-type (deref func-type-ref)))
+          (destructuring-bind (typed-arg-forms return-type)
+              (check-funcall context func-type arg-forms
+                             `(,name ,@arg-forms))
+            `(truly-the ,return-type (,name ,@typed-arg-forms))))
+        (error "Could not find function for call in scope: ~a~%given context:~a"
+               `(,name ,@arg-forms)
+               context))))
+
 (defun infer-funcall (context func-form arg-forms)
   (let* ((arg-len (length arg-forms))
          (arg-types (loop
                        :repeat arg-len
                        :collect (make-unknown)))
-         (ret-type (make-unknown))
          (check-type (take-ref (make-instance
                                 'tfunction
                                 :arg-types arg-types
-                                :return-type ret-type)))
-         (typed-func-form (check context func-form check-type))
-         (typed-arg-forms
-          (loop
-             :for arg-form :in arg-forms
-             :for arg-type :in arg-types
-             :collect (check context arg-form arg-type))))
+                                :return-type (make-unknown))))
+         (typed-func-form (check context func-form check-type)))
+    (destructuring-bind (typed-arg-forms return-type)
+        (check-funcall context check-type arg-forms
+                       `(funcall ,func-form ,@arg-forms))
+      `(truly-the ,return-type
+                  (funcall ,typed-func-form
+                           ,@typed-arg-forms)))))
+
+(defun check-funcall (context func-type arg-forms full-form)
+  (with-slots (arg-types return-type) func-type
     (assert (= (length arg-forms)
-               (length (slot-value
-                        (deref (type-of-typed-expression typed-func-form))
-                        'arg-types)))
-            () "Incorrect number of args in funcall~%~s"
-            `(funcall ,func-form ,@arg-forms))
-    `(truly-the ,ret-type
-                (funcall ,typed-func-form
-                         ,@typed-arg-forms))))
+               (length arg-types))
+            () "Incorrect number of args in funtion call:~%~s~%expected ~a"
+            full-form
+            (length arg-types))
+    (let* ((typed-arg-forms
+            (loop
+               :for arg-form :in arg-forms
+               :for arg-type :in arg-types
+               :collect (check context arg-form arg-type))))
+      (list typed-arg-forms return-type))))
 
 (defun infer-lambda-form (context args body)
   (multiple-value-bind (body declarations doc-string)

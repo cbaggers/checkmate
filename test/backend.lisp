@@ -5,6 +5,7 @@
 (defvar *registered-user-types* (make-hash-table :test #'eq))
 (defvar *registered-parameter-types* (make-hash-table :test #'eq))
 (defvar *registered-constraints* (make-hash-table :test #'eq))
+(defvar *registered-top-level-functions* (make-hash-table :test #'eq))
 
 ;;------------------------------------------------------------
 
@@ -22,6 +23,11 @@
   (with-slots (name) spec
     (format t "~%;; Registered param type ~a" name)
     (setf (gethash name *registered-parameter-types*) spec)))
+
+(defun register-top-level-function (func-name type)
+  (format t "~%;; Registered function ~a" func-name)
+  (setf (gethash func-name *registered-top-level-functions*)
+        (generalize type)))
 
 ;;------------------------------------------------------------
 
@@ -45,6 +51,10 @@
                  *registered-constraints*)
         (error "Could not identify constraint for designator: ~a"
                designator))))
+
+(defmethod get-top-level-function-type ((type-system staticl) name)
+  (or (gethash name *registered-top-level-functions*)
+      (error "Could not function for name: ~a" name)))
 
 ;;------------------------------------------------------------
 
@@ -89,5 +99,13 @@
                            ,valid-p
                            ,equal))
      ',name))
+
+(defmacro defn (name args &body body)
+  `(progn
+     (register-top-level-function
+      ',name
+      (type-of-typed-expression
+       (infer (make-check-context 'staticl)
+              '(lambda ,args ,@body))))))
 
 ;;------------------------------------------------------------

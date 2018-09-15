@@ -26,3 +26,6 @@
                      (declare (ignore this))
                      (print (list :breen> type-ref))
                      t))
+
+(defn horse ((a ?a))
+  a)
