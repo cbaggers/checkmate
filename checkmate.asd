@@ -9,6 +9,7 @@
   :components ((:file "package")
                (:file "core/utils")
                (:file "core/types")
+               (:file "core/copy")
                (:file "core/typesystem")
                (:file "core/context")
                (:file "core/completeness")
@@ -20,6 +21,7 @@
                (:file "core/common")
                (:file "core/constraints")
                (:file "core/ttype")
+               (:file "core/generalize")
                ;;
                (:file "core/unify")
                (:file "core/ttype-param")
