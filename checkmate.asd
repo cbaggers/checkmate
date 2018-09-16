@@ -9,6 +9,7 @@
   :components ((:file "package")
                (:file "core/utils")
                (:file "core/types")
+               (:file "core/spec-accessors")
                (:file "core/copy")
                (:file "core/typesystem")
                (:file "core/context")
@@ -18,7 +19,6 @@
                (:file "core/unknowns")
                (:file "core/parameters")
                ;;
-               (:file "core/common")
                (:file "core/constraints")
                (:file "core/ttype")
                (:file "core/generalize")

@@ -2,13 +2,11 @@
 
 ;;------------------------------------------------------------
 
-(defclass type-system () (name))
-
 (defvar *registered-type-systems*
   (make-hash-table :test #'eq))
 
 (defun register-type-system (name)
-  (assert (subtypep 'staticl 'type-system))
+  (assert (subtypep name 'type-system))
   (when (gethash name *registered-type-systems*)
     (warn ";; Redefining type system: ~a" name))
   (setf (gethash name *registered-type-systems*)

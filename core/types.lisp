@@ -1,6 +1,11 @@
 (in-package :checkmate)
 
 ;;------------------------------------------------------------
+;; Type System
+
+(defclass type-system () (name))
+
+;;------------------------------------------------------------
 ;; Contexts
 
 (defclass check-context ()
@@ -10,9 +15,13 @@
    (parent :initform nil :initarg :parent)))
 
 ;;------------------------------------------------------------
+
+(defclass checkmate-spec () ())
+
+;;------------------------------------------------------------
 ;; Types
 
-(defclass user-ttype-spec ()
+(defclass user-ttype-spec (checkmate-spec)
   ((name :initarg :name)
    (arg-param-specs :initarg :arg-param-specs)
    (custom-data :initarg :custom-data :initform nil)))
@@ -40,7 +49,7 @@
 ;;------------------------------------------------------------
 ;; Params
 
-(defclass ttype-parameter-spec ()
+(defclass ttype-parameter-spec (checkmate-spec)
   ((name :initarg :name)
    (unify :initarg :unify)
    (valid-p :initarg :valid-p)))
@@ -61,7 +70,7 @@
 ;;------------------------------------------------------------
 ;; Constraints
 
-(defclass constraint-spec ()
+(defclass constraint-spec (checkmate-spec)
   ((name :initarg :name)
    (init :initarg :init)
    (satisfies :initarg :satisfies)
