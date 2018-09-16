@@ -1,4 +1,4 @@
-(in-package :checkmate)
+(in-package :staticl-impl)
 
 ;;------------------------------------------------------------
 
@@ -10,17 +10,17 @@
 ;;------------------------------------------------------------
 
 (defun register-type (spec)
-  (with-slots (name) spec
+  (let ((name (spec-name spec)))
     (format t "~%;; Registered type ~a" name)
     (setf (gethash name *registered-user-types*) spec)))
 
 (defun register-constraint (spec)
-  (with-slots (name) spec
+  (let ((name (spec-name spec)))
     (format t "~%;; Registered constraint ~a" name)
     (setf (gethash name *registered-constraints*) spec)))
 
 (defun register-parameter-type (spec)
-  (with-slots (name) spec
+  (let ((name (spec-name spec)))
     (format t "~%;; Registered param type ~a" name)
     (setf (gethash name *registered-parameter-types*) spec)))
 
@@ -64,13 +64,14 @@
   (declare (ignore rest))
   (destructuring-bind (name . rest) (uiop:ensure-list designator)
     (declare (ignore rest))
-    `(progn
-       (register-type
-        (make-ttype-spec (find-type-system 'staticl)
-                         ',designator
-                         ',where
-                         ',custom-spec-data))
-       ',name)))
+    (let ((spec (register-type
+                 (make-ttype-spec (find-type-system 'staticl)
+                                  designator
+                                  where
+                                  custom-spec-data))))
+      `(progn
+         (register-type ,spec)
+         ',name))))
 
 (defmacro define-constraint (designator
                              &body rest
@@ -79,33 +80,35 @@
   (declare (ignore rest))
   (destructuring-bind (name . rest) (uiop:ensure-list designator)
     (declare (ignore rest))
-    `(progn
-       (register-constraint
-        (make-constraint-spec (find-type-system 'staticl)
-                              ',designator
-                              ',where
-                              ,satifies-this-p
-                              ',custom-spec-data))
-       ',name)))
+    (let ((spec (register-constraint
+                 (make-constraint-spec (find-type-system 'staticl)
+                                       designator
+                                       where
+                                       satifies-this-p
+                                       custom-spec-data))))
+      `(progn
+         (register-constraint ,spec)
+         ',name))))
 
 (defmacro define-parameter-type (name
                                  &body rest
                                  &key valid-p equal)
   (declare (ignore rest))
-  `(progn
-     (register-parameter-type
-      (make-parameter-spec (find-type-system 'staticl)
-                           ',name
-                           ,valid-p
-                           ,equal))
-     ',name))
+  (let ((spec (register-parameter-type
+               (make-parameter-spec (find-type-system 'staticl)
+                                    name
+                                    valid-p
+                                    equal))))
+    `(progn
+       (register-parameter-type ,spec)
+       ',name)))
 
 (defmacro defn (name args &body body)
-  `(progn
-     (register-top-level-function
-      ',name
-      (type-of-typed-expression
-       (infer (make-check-context 'staticl)
-              '(lambda ,args ,@body))))))
+  (let ((spec (type-of-typed-expression
+                (infer (make-check-context 'staticl)
+                       `(lambda ,args ,@body)))))
+    (register-top-level-function name spec)
+    `(progn
+       (register-top-level-function ',name ,spec))))
 
 ;;------------------------------------------------------------
