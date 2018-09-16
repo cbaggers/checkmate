@@ -64,9 +64,11 @@
     (loop
        :for aparam :across (slot-value a 'arg-vals)
        :for bparam :across (slot-value b 'arg-vals)
-       :do (if (typep aparam 'type-ref)
+       :for a-is-type := (typep aparam 'type-ref)
+       :for b-is-type := (typep bparam 'type-ref)
+       :do (if (or a-is-type b-is-type)
                (progn
-                 (assert (typep bparam 'type-ref))
+                 (assert (and a-is-type b-is-type))
                  (unify aparam bparam mutate-p))
                (unify-params aparam bparam t)))
     t))
@@ -80,14 +82,14 @@
          (b (deref param-b))
          (a-unknown (typep a 'unknown-param))
          (b-unknown (typep b 'unknown-param))
-         (primary-name-matches (eq (slot-value a 'name)
-                                   (slot-value b 'name))))
+         (name-a (slot-value a 'name))
+         (name-b (slot-value b 'name))
+         (primary-name-matches (eq name-a name-b)))
     (cond
       ((and primary-name-matches
-            (funcall (slot-value (slot-value a 'spec) 'unify)
+            (funcall (slot-value (slot-value a 'spec) 'equal)
                      (slot-value a 'value)
-                     (slot-value b 'value)
-                     mutate-p))
+                     (slot-value b 'value)))
        t)
       (a-unknown
        (when mutate-p

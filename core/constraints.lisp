@@ -16,7 +16,13 @@
                              named-unknowns
                              args))))))
 
+(defun late-initialize-constraint-spec (spec)
+  (unless (slot-boundp spec 'satisfies)
+    (setf (slot-value spec 'satisfies)
+          (symbol-function (slot-value spec 'satisfies-name)))))
+
 (defun to-constraint (type-system spec named-unknowns args)
+  (late-initialize-constraint-spec spec)
   (with-slots (arg-param-specs) spec
     (let* ((constructed
             (construct-designator-args type-system
@@ -36,8 +42,9 @@
 (defun make-constraint-spec (type-system
                              designator
                              where
-                             satifies-this-p
+                             satisfies-this-p
                              custom-spec-data)
+  (assert (symbolp satisfies-this-p))
   (destructuring-bind (name . designator-args)
       (uiop:ensure-list designator)
     (let* ((req-args
@@ -52,7 +59,7 @@
       (make-instance
        'constraint-spec
        :name name
-       :satisfies satifies-this-p
+       :satisfies-name satisfies-this-p
        :custom-data custom-spec-data
        :arg-param-specs (make-array (length params)
                                     :initial-contents params)))))

@@ -51,8 +51,10 @@
 
 (defclass ttype-parameter-spec (checkmate-spec)
   ((name :initarg :name)
-   (unify :initarg :unify)
-   (valid-p :initarg :valid-p)))
+   (equal :initarg :equal)
+   (equal-name :initarg :equal-name)
+   (valid-p :initarg :valid-p)
+   (valid-p-name :initarg :valid-p-name)))
 
 (defclass ttype-parameter ()
   ((name :initarg :name)
@@ -72,7 +74,7 @@
 
 (defclass constraint-spec (checkmate-spec)
   ((name :initarg :name)
-   (init :initarg :init)
+   (satisfies-name :initarg :satisfies-name)
    (satisfies :initarg :satisfies)
    (arg-param-specs :initarg :arg-param-specs)
    (custom-data :initarg :custom-data :initform nil)))

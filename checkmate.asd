@@ -9,6 +9,7 @@
   :components ((:file "package")
                (:file "core/utils")
                (:file "core/types")
+               (:file "core/load-forms")
                (:file "core/spec-accessors")
                (:file "core/copy")
                (:file "core/typesystem")

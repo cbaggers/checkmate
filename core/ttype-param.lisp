@@ -6,6 +6,9 @@
   (setf *ttype-param-spec*
         (make-instance 'ttype-parameter-spec
                        :name 'ttype
-                       :unify #'unify)))
+                       :equal-name nil
+                       :equal nil
+                       :valid-p-name nil
+                       :valid-p nil)))
 
 ;;------------------------------------------------------------

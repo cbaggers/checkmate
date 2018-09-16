@@ -79,7 +79,18 @@
 (defun ttype-designator-to-param (type-system val)
   (designator->type type-system val))
 
+(defun late-initialize-param-spec (spec)
+  (unless (slot-boundp spec 'equal)
+    (setf (slot-value spec 'equal)
+          (when (slot-value spec 'equal-name)
+            (symbol-function (slot-value spec 'equal-name)))))
+  (unless (slot-boundp spec 'valid-p)
+    (setf (slot-value spec 'valid-p)
+          (when (slot-value spec 'valid-p-name)
+            (symbol-function (slot-value spec 'valid-p-name))))))
+
 (defun to-param (type-system spec val)
+  (late-initialize-param-spec spec)
   (let ((name (slot-value spec 'name)))
     (if (eq name 'ttype)
         (ttype-designator-to-param type-system val)
@@ -97,11 +108,12 @@
   (declare (ignore type-system))
   (assert (not (eq name 'ttype)))
   (assert (and (symbolp name) (not (keywordp name))))
+  (assert (symbolp valid-p))
+  (assert (symbolp equal))
+  ;; {TODO} remove unify and replace with hardcoding in unify.lisp/87
   (make-instance 'ttype-parameter-spec
                  :name name
-                 :unify (lambda (a b mut-p)
-                          (declare (ignore mut-p))
-                          (funcall equal a b))
-                 :valid-p (or valid-p #'identity)))
+                 :equal-name equal
+                 :valid-p-name (or valid-p 'identity)))
 
 ;;------------------------------------------------------------
