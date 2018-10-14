@@ -3,7 +3,9 @@
 ;;------------------------------------------------------------
 ;; Type System
 
-(defclass type-system () (name))
+(defclass type-system ()
+  ((name :initarg :name)
+   (boolean-type-designator :initarg :boolean-type-designator)))
 
 ;;------------------------------------------------------------
 ;; Contexts

@@ -99,7 +99,10 @@
   (with-slots (type-system) context
     (let* (;; {TODO} support any object in test
            (typed-test
-            (check context test (designator->type type-system 'tboolean)))
+            (check context test (designator->type
+                                 type-system
+                                 (slot-value type-system
+                                             'boolean-type-designator))))
            ;; {TODO} can we support 'or' types here?
            (typed-then (infer context then))
            (let-type (type-of-typed-expression typed-then))

@@ -5,8 +5,10 @@
 (defmethod make-load-form ((obj type-system)
                            &optional environment)
   (declare (ignore environment))
-  (with-slots (name) obj
-    `(make-instance 'type-system :name ',name)))
+  (with-slots (name boolean-type-designator) obj
+    `(make-instance 'type-system
+                    :name ',name
+                    :boolean-type-designator ',boolean-type-designator)))
 
 (defmethod make-load-form ((obj user-ttype-spec)
                            &optional environment)
