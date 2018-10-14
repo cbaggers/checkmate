@@ -5,7 +5,9 @@
 
 (defclass type-system ()
   ((name :initarg :name)
-   (boolean-type-designator :initarg :boolean-type-designator)))
+   (boolean-type-designator :initarg :boolean-type-designator)
+   (true-symbol :initarg :true-symbol)
+   (false-symbol :initarg :false-symbol)))
 
 ;;------------------------------------------------------------
 ;; Contexts

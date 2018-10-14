@@ -13,11 +13,15 @@
         (make-instance name))
   name)
 
-(defmacro define-type-system (name boolean-designator)
+(defmacro define-type-system (name &key (boolean-designator 'boolean)
+                                     (true-symbol t)
+                                     (false-symbol nil))
   `(progn
      (defclass ,name (type-system)
        ((name :initform ',name)
-        (boolean-type-designator :initform ',boolean-designator)))
+        (boolean-type-designator :initform ',boolean-designator)
+        (true-symbol :initform ',true-symbol)
+        (false-symbol :initform ',false-symbol)))
      (register-type-system ',name)
      ',name))
 

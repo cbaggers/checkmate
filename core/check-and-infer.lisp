@@ -15,29 +15,27 @@
 (defun infer (context expression)
   "The type-system equivalent of eval.
    Assumes the expression is macroexpanded"
-  (cond
-    ((or (eq expression t)
-         (eq expression nil))
-     (infer-boolean context expression))
-    ((symbolp expression)
-     (infer-variable context expression))
-    ((listp expression)
-     (infer-form context
-                 (first expression)
-                 (rest expression)))
-    (t
-     (with-slots (type-system) context
-       (infer-literal type-system expression)))))
+  (with-slots (type-system) context
+    (with-slots (true-symbol false-symbol) type-system
+      (cond
+        ((or (eq expression true-symbol)
+             (eq expression false-symbol))
+         (infer-boolean context expression))
+        ((symbolp expression)
+         (infer-variable context expression))
+        ((listp expression)
+         (infer-form context
+                     (first expression)
+                     (rest expression)))
+        (t
+         (infer-literal type-system expression))))))
 
 ;;------------------------------------------------------------
 
-(defun infer-boolean (context expression)
-  (assert (or (eq expression t)
-              (eq expression nil)))
-  (with-slots (type-system) context
-    (with-slots (boolean-type-designator) type-system
-      `(truly-the ,(designator->type type-system boolean-type-designator)
-                  ,expression))))
+(defun infer-boolean (type-system expression)
+  (with-slots (boolean-type-designator) type-system
+    `(truly-the ,(designator->type type-system boolean-type-designator)
+                ,expression)))
 
 ;;------------------------------------------------------------
 
