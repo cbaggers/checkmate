@@ -40,4 +40,6 @@
            :constraint-ref
            :unknown
            :unknown-param
-           :generalized-function-type))
+           :generalized-function-type
+
+           :truly-the))
