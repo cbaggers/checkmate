@@ -224,12 +224,16 @@
           (let* ((body-context (add-bindings context processed-args))
                  (typed-body (infer body-context `(progn ,@body)))
                  (arg-types (mapcar #'second processed-args))
-                 (return-type (type-of-typed-expression typed-body)))
+                 (return-type (type-of-typed-expression typed-body))
+                 (typed-args (loop
+                                :for (name) :in args
+                                :for type :in arg-types
+                                :collect (list name type))))
             `(truly-the
               ,(take-ref (make-instance 'tfunction
                                         :arg-types arg-types
                                         :return-type return-type))
-              (lambda ,args
+              (lambda ,typed-args
                 ,@(when doc-string (list doc-string))
                 ,@declarations
                 ,typed-body))))))))
