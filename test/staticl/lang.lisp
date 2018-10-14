@@ -33,3 +33,6 @@
 
 (defn horse ((a ?a))
   a)
+
+(defmethod infer-literal ((type-system staticl) (expression integer))
+  `(truly-the ,(designator->type type-system 'integer) ,expression))

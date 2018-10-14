@@ -23,6 +23,7 @@
 
            :check
            :infer
+           :infer-literal
            :construct
            :generalize
 

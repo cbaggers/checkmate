@@ -18,7 +18,7 @@
   (cond
     ((or (eq expression t)
          (eq expression nil))
-     (infer-literal context expression))
+     (infer-boolean context expression))
     ((symbolp expression)
      (infer-variable context expression))
     ((listp expression)
@@ -26,24 +26,25 @@
                  (first expression)
                  (rest expression)))
     (t
-     (infer-literal context expression))))
+     (with-slots (type-system) context
+       (infer-literal type-system expression)))))
 
 ;;------------------------------------------------------------
 
-(defgeneric infer-literal (context expression)
-  (:method (c e)
-    (error "Could not infer a type for literal ~a given env ~a"
-           c e)))
-
-(defmethod infer-literal (context (expression symbol))
+(defun infer-boolean (context expression)
   (assert (or (eq expression t)
               (eq expression nil)))
   (with-slots (type-system) context
-    `(truly-the ,(designator->type type-system 'boolean) ,expression)))
+    (with-slots (boolean-type-designator) type-system
+      `(truly-the ,(designator->type type-system boolean-type-designator)
+                  ,expression))))
 
-(defmethod infer-literal (context (expression integer))
-  (with-slots (type-system) context
-    `(truly-the ,(designator->type type-system 'integer) ,expression)))
+;;------------------------------------------------------------
+
+(defgeneric infer-literal (type-system expression)
+  (:method (ts e)
+    (error "Could not infer a type for literal ~a given type-system ~a"
+           e ts)))
 
 ;;------------------------------------------------------------
 
