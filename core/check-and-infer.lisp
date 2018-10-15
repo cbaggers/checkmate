@@ -20,7 +20,7 @@
       (cond
         ((or (eq expression true-symbol)
              (eq expression false-symbol))
-         (infer-boolean context expression))
+         (infer-boolean type-system expression))
         ((symbolp expression)
          (infer-variable context expression))
         ((listp expression)
