@@ -32,7 +32,25 @@
   :satifies-this-p is-breenable)
 
 (defn horse ((a ?a))
+    a)
+
+#+nil
+(defn bear ((a ?a))
+    (declare (satisfies disposable ?a))
   a)
 
-(defmethod infer-literal ((type-system staticl) (expression integer))
-  `(truly-the ,(designator->type type-system 'integer) ,expression))
+#+nil
+(infer (make-check-context 'staticl)
+       '#'bear)
+
+#+nil
+(infer (make-check-context 'staticl)
+       `(funcall (lambda ((a (unordered-set ?a ?b))
+                          (b ?a))
+                   (declare (satisfies disposable ?a))
+                   (horse b)
+                   (horse 1))
+                 (construct
+                  (unordered-set boolean 10)
+                  :foo)
+                 t))

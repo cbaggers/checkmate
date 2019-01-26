@@ -112,3 +112,9 @@
        (register-top-level-function ',name ,spec))))
 
 ;;------------------------------------------------------------
+
+(defmethod infer-literal ((type-system staticl) (expression integer))
+  `(truly-the ,(checkmate::designator->type type-system 'integer)
+              ,expression))
+
+;;------------------------------------------------------------
