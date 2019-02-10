@@ -2,6 +2,12 @@
 
 ;;------------------------------------------------------------
 
+(defun find-ttype (type-system-designator type-designator)
+  (designator->type (etypecase type-system-designator
+                      (type-system type-system-designator)
+                      (symbol (find-type-system type-system-designator)))
+                    type-designator))
+
 (defmacro ttype (type-system-designator designator)
   (designator->type (find-type-system type-system-designator)
                     designator))

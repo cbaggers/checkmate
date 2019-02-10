@@ -20,6 +20,7 @@
            :ttype
            :ttype-of
            :type-of-typed-expression
+           :find-ttype
 
            :check
            :infer
