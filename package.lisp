@@ -5,6 +5,7 @@
   (:export :define-type-system
            :find-type-system
 
+           :expand-type-designator
            :get-type-spec
            :get-parameter-spec
            :get-constraint-spec

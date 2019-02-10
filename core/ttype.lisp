@@ -95,8 +95,9 @@
                                     named-unknowns
                                     constraints
                                     designator)
-  (destructuring-bind (principle-name . args)
-      (uiop:ensure-list designator)
+  (let ((principle-name (if (atom designator)
+                            designator
+                            (first designator))))
     (case principle-name
       ;;
       ;; always use make-unknown
@@ -129,13 +130,18 @@
                      (make-unknown (gethash designator constraints))))
            ;;
            ;; user type
-           (let ((type-spec (get-type-spec type-system designator)))
-             ;; note: to-type does return a ref
-             (to-type type-system
-                      type-spec
-                      named-unknowns
-                      constraints
-                      args)))))))
+           (let* ((expanded-designator
+                   (expand-type-designator type-system designator))
+                  (type-spec
+                   (get-type-spec type-system expanded-designator)))
+             (let ((args (when (listp expanded-designator)
+                           (rest expanded-designator))))
+               ;; note: to-type does return a ref
+               (to-type type-system
+                        type-spec
+                        named-unknowns
+                        constraints
+                        args))))))))
 
 ;;------------------------------------------------------------
 
