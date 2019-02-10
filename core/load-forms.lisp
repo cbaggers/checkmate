@@ -64,11 +64,12 @@
                            &optional environment)
   (declare (ignore environment))
   (with-slots (name spec value refs) obj
-    `(make-instance 'ttype-parameter
-                    :name ',name
-                    :spec ,spec
-                    :value ',value
-                    :refs ,(cons 'list refs))))
+    (values
+     `(make-instance 'ttype-parameter
+                     :name ',name
+                     :spec ,spec
+                     :value ',value)
+     `(setf (slot-value ,obj 'refs) ,(cons 'list refs)))))
 
 (defmethod make-load-form ((obj param-ref)
                            &optional environment)
