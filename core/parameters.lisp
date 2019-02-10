@@ -8,7 +8,11 @@
                                   constraints
                                   vals)
   (with-slots (name arg-param-specs) type-spec
-    (assert (= (length arg-param-specs) (length vals)))
+    (assert (= (length arg-param-specs) (length vals)) ()
+            "Not enough values in ~a to satify ~a"
+            (cons name vals)
+            (cons name (map 'list (lambda (x) (slot-value x 'name))
+                            arg-param-specs)))
     (loop
        :for val :in vals
        :for param-spec :across arg-param-specs
