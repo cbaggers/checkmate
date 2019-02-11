@@ -8,12 +8,16 @@
                    :type-system tsys)))
 
 (defun get-function-type (context name)
-  (labels ((inner (context)
+  (labels ((find-in-context (context)
              (with-slots (function-types parent type-system) context
                (or (when function-types (gethash name function-types))
-                   (when parent (inner parent))
+                   (when parent (find-in-context parent))
                    (get-top-level-function-type type-system name)))))
-    (inner context)))
+    (let ((ftype (find-in-context context)))
+      (etypecase ftype
+        (generalized-function-type
+         (instantiate-function-type ftype))
+        (tfunction ftype)))))
 
 (defun get-binding (context name)
   (labels ((inner (context)
