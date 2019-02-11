@@ -1,5 +1,25 @@
 ;;;; package.lisp
 
+(uiop:define-package #:checkmate.lang
+    (:use)
+  (:import-from :cl
+                :quote
+                :function
+                :funcall
+                :the
+                :lambda
+                :let
+                :progn)
+  (:export :construct
+           :quote
+           :function
+           :funcall
+           :the
+           :truly-the
+           :lambda
+           :let
+           :progn))
+
 (uiop:define-package #:checkmate
     (:use #:cl)
   (:export :define-type-system
@@ -25,7 +45,7 @@
 
            :check
            :infer
-           :infer-literal
+           :infer-variable
            :construct
            :generalize
 

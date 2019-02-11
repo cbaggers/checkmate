@@ -13,27 +13,80 @@
         (make-instance name))
   name)
 
-(defmacro define-type-system (name &key (boolean-designator 'boolean)
-                                     (true-symbol t)
-                                     (false-symbol nil))
-  `(progn
-     (defclass ,name (type-system)
-       ((name :initform ',name)
-        (boolean-type-designator :initform ',boolean-designator)
-        (true-symbol :initform ',true-symbol)
-        (false-symbol :initform ',false-symbol)))
-     (register-type-system ',name)
-     ',name))
-
-(defgeneric get-type-spec (type-system designator))
-(defgeneric expand-type-designator (type-system designator)
-  (:method (ts designator)
-    (declare (ignore ts))
-    designator))
-(defgeneric get-constraint-spec (type-system designator))
-(defgeneric get-parameter-spec (type-system name))
-(defgeneric get-top-level-function-type (type-system name))
-(defgeneric get-top-level-var-type (type-system name))
+(defmacro define-type-system
+    (name
+     &key infer-atom
+       infer-special-form
+       type-expander
+       get-type-spec
+       get-constraint-spec
+       get-parameter-spec
+       get-top-level-function-type
+       get-top-level-var-type)
+  (assert (and infer-atom (symbolp infer-atom)))
+  (assert (or (null infer-special-form) (symbolp infer-special-form)))
+  (let ((infer-special-form
+         (or infer-special-form 'default-thing-getter))
+        ;;
+        (get-type-spec
+         (or get-type-spec 'default-thing-getter))
+        (type-expander
+         (or type-expander 'default-type-designator-expander))
+        ;;
+        (get-constraint-spec
+         (or get-constraint-spec 'default-thing-getter))
+        (get-parameter-spec
+         (or get-parameter-spec 'default-thing-getter))
+        (get-top-level-function-type
+         (or get-top-level-function-type 'default-thing-getter))
+        (get-top-level-var-type
+         (or get-top-level-var-type 'default-thing-getter)))
+    `(progn
+       (defclass ,name (type-system)
+         ((name
+           :initform ',name)
+          (infer-atom-name
+           :initform ',infer-atom)
+          (infer-atom
+           :initform (lambda (x y) (,infer-atom x y)))
+          (infer-special-form-name
+           :initform ',infer-special-form)
+          (infer-special-form
+           :initform (lambda (x y z) (,infer-special-form x y z)))
+          (get-type-spec-name
+           :initform ',get-type-spec)
+          (get-type-spec
+           :initform (lambda (x y) (,get-type-spec x y)))
+          (type-expander-name
+           :initform ',type-expander)
+          (type-expander
+           :initform (lambda (x y) (,type-expander x y)))
+          (get-constraint-spec-name
+           :initform ',get-constraint-spec)
+          (get-constraint-spec
+           :initform ',(if get-constraint-spec
+                           `(lambda (x y) (,get-constraint-spec x y))
+                           'default-thing-getter))
+          (get-parameter-spec-name
+           :initform ',get-parameter-spec)
+          (get-parameter-spec
+           :initform ',(if get-parameter-spec
+                           `(lambda (x y) (,get-parameter-spec x y))
+                           'default-thing-getter))
+          (get-top-level-function-type-name
+           :initform ',get-top-level-function-type)
+          (get-top-level-function-type
+           :initform ',(if get-top-level-function-type
+                           `(lambda (x y) (,get-top-level-function-type x y))
+                           'default-thing-getter))
+          (get-top-level-var-type-name
+           :initform ',get-top-level-var-type)
+          (get-top-level-var-type
+           :initform ',(if get-top-level-var-type
+                           `(lambda (x y) (,get-top-level-var-type x y))
+                           'default-thing-getter))))
+       (register-type-system ',name)
+       ',name)))
 
 ;;------------------------------------------------------------
 
@@ -52,4 +105,7 @@
 (defun %get-parameter-spec (type-system name)
   (if (eq name 'ttype)
       *ttype-param-spec*
-      (get-parameter-spec type-system name)))
+      (with-slots (get-parameter-spec) type-system
+        (or (funcall get-parameter-spec type-system name)
+            (error "Could not find parameter spec for ~a"
+                   name)))))

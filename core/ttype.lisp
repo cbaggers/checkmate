@@ -4,8 +4,12 @@
 
 (defun find-ttype (type-system-designator type-designator)
   (designator->type (etypecase type-system-designator
-                      (type-system type-system-designator)
-                      (symbol (find-type-system type-system-designator)))
+                      (check-context
+                       (slot-value type-system-designator 'type-system))
+                      (type-system
+                       type-system-designator)
+                      (symbol
+                       (find-type-system type-system-designator)))
                     type-designator))
 
 (defmacro ttype (type-system-designator designator)
@@ -130,18 +134,27 @@
                      (make-unknown (gethash designator constraints))))
            ;;
            ;; user type
-           (let* ((expanded-designator
-                   (expand-type-designator type-system designator))
-                  (type-spec
-                   (get-type-spec type-system expanded-designator)))
-             (let ((args (when (listp expanded-designator)
-                           (rest expanded-designator))))
-               ;; note: to-type does return a ref
-               (to-type type-system
-                        type-spec
-                        named-unknowns
-                        constraints
-                        args))))))))
+           (with-slots (get-type-spec type-expander)
+               type-system
+             (let* ((expanded-designator
+                     (funcall type-expander
+                              type-system
+                              designator))
+                    (type-spec
+                     (or (funcall get-type-spec
+                                  type-system
+                                  expanded-designator)
+                         (error "Could not find type name ~a"
+                                designator))))
+               ;;
+               (let ((args (when (listp expanded-designator)
+                             (rest expanded-designator))))
+                 ;; note: to-type does return a ref
+                 (to-type type-system
+                          type-spec
+                          named-unknowns
+                          constraints
+                          args)))))))))
 
 ;;------------------------------------------------------------
 

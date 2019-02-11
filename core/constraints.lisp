@@ -9,12 +9,17 @@
       (declare (ignore principle-name))
       (assert (not (unknown-designator-name-p designator)) ()
               "Constraint cannot be unknown")
-      (let ((spec (get-constraint-spec type-system designator)))
-        (setf (deref constraint-ref)
-              (to-constraint type-system
-                             spec
-                             named-unknowns
-                             args))))))
+      (with-slots (get-constraint-spec) type-system
+        (let ((spec (or (funcall get-constraint-spec
+                                 type-system
+                                 designator)
+                        (error "Could not infer type of constraint ~a"
+                               designator))))
+          (setf (deref constraint-ref)
+                (to-constraint type-system
+                               spec
+                               named-unknowns
+                               args)))))))
 
 (defun late-initialize-constraint-spec (spec)
   (unless (slot-boundp spec 'satisfies)
@@ -76,7 +81,7 @@
       (labels ((unifies-with-constraint (constraint)
                  (with-slots (satisfies)
                      (slot-value (deref constraint) 'spec)
-                   (unless(typep type 'unknown)
+                   (unless (typep type 'unknown)
                      (handler-case
                          (funcall satisfies constraint type-ref)
                        (error () nil))))))

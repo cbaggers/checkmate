@@ -12,7 +12,13 @@
              (with-slots (function-types parent type-system) context
                (or (when function-types (gethash name function-types))
                    (when parent (find-in-context parent))
-                   (get-top-level-function-type type-system name)))))
+                   (with-slots (get-top-level-function-type)
+                       type-system
+                     (funcall get-top-level-function-type
+                              type-system
+                              name))
+                   (error "Could not get function type for ~a"
+                          name)))))
     (let ((ftype (find-in-context context)))
       (etypecase ftype
         (generalized-function-type

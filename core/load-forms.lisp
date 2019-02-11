@@ -5,10 +5,34 @@
 (defmethod make-load-form ((obj type-system)
                            &optional environment)
   (declare (ignore environment))
-  (with-slots (name boolean-type-designator) obj
-    `(make-instance 'type-system
-                    :name ',name
-                    :boolean-type-designator ',boolean-type-designator)))
+  (with-slots (name infer-atom-name
+                    infer-special-form-name
+                    type-expander-name
+                    get-type-spec-name
+                    get-constraint-spec-name
+                    get-parameter-spec-name
+                    get-top-level-function-type-name
+                    get-top-level-var-type-name)
+      obj
+    `(make-instance
+      'type-system
+      :name ',name
+      :infer-atom-name ',infer-atom-name
+      :infer-atom #',infer-atom-name
+      :infer-special-form-name ',infer-special-form-name
+      :infer-special-form #',infer-special-form-name
+      :type-expander-name ',type-expander-name
+      :type-expander #',type-expander-name
+      :get-type-spec-name ',get-type-spec-name
+      :get-type-spec #',get-type-spec-name
+      :get-constraint-spec-name ',get-constraint-spec-name
+      :get-constraint-spec #',get-constraint-spec-name
+      :get-parameter-spec-name ',get-parameter-spec-name
+      :get-parameter-spec #',get-parameter-spec-name
+      :get-top-level-function-type-name ',get-top-level-function-type-name
+      :get-top-level-function-type #',get-top-level-function-type-name
+      :get-top-level-var-type-name ',get-top-level-var-type-name
+      :get-top-level-var-type #',get-top-level-var-type-name)))
 
 (defmethod make-load-form ((obj user-ttype-spec)
                            &optional environment)

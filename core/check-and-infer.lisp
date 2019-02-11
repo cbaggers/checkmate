@@ -15,34 +15,12 @@
 (defun infer (context expression)
   "The type-system equivalent of eval.
    Assumes the expression is macroexpanded"
-  (with-slots (type-system) context
-    (with-slots (true-symbol false-symbol) type-system
-      (cond
-        ((or (eq expression true-symbol)
-             (eq expression false-symbol))
-         (infer-boolean type-system expression))
-        ((symbolp expression)
-         (infer-variable context expression))
-        ((listp expression)
-         (infer-form context
-                     (first expression)
-                     (rest expression)))
-        (t
-         (infer-literal type-system expression))))))
-
-;;------------------------------------------------------------
-
-(defun infer-boolean (type-system expression)
-  (with-slots (boolean-type-designator) type-system
-    `(truly-the ,(designator->type type-system boolean-type-designator)
-                ,expression)))
-
-;;------------------------------------------------------------
-
-(defgeneric infer-literal (type-system expression)
-  (:method (ts e)
-    (error "Could not infer a type for literal ~a given type-system ~a"
-           e ts)))
+  (with-slots (infer-atom) (slot-value context 'type-system)
+    (if (atom expression)
+        (or (funcall infer-atom context expression)
+            (error "Could not infer the type for the atom ~a"
+                   expression))
+        (infer-form context (first expression) (rest expression)))))
 
 ;;------------------------------------------------------------
 
@@ -53,33 +31,37 @@
 
 ;;------------------------------------------------------------
 
-(defgeneric infer-form (context name args)
-  (:method (context name args)
-    (case name
-      (if
-       (assert (= (length args) 3))
-       (infer-if context (first args) (second args) (third args)))
-      (construct
-       (assert (= (length args) 2))
-       (infer-construct context (first args) (second args)))
-      (truly-the
-       (assert (= (length args) 2))
-       (infer-truly-the context (first args) (second args)))
-      (the
-       (assert (= (length args) 2))
-       (infer-the context (first args) (second args)))
-      (progn (infer-progn context args))
-      (let (infer-let-form context (first args) (rest args)))
-      (lambda (infer-lambda-form context (first args) (rest args)))
-      (funcall (infer-funcall context (first args) (rest args)))
-      (function
-       (assert (= (length args) 1))
-       (infer-function-form context (first args)))
-      (quote
-       (assert (= (length args) 1))
-       (infer-quote-form context (first args)))
-      (otherwise
-       (infer-function-call context name args)))))
+(defun infer-form (context name args)
+  (case name
+    (checkmate.lang:construct
+     (assert (= (length args) 2))
+     (infer-construct context (first args) (second args)))
+    (checkmate.lang:quote
+     (assert (= (length args) 1))
+     (infer-quote-form context (first args)))
+    (checkmate.lang:function
+     (assert (= (length args) 1))
+     (infer-function-form context (first args)))
+    (checkmate.lang:progn
+      (infer-progn context args))
+    (checkmate.lang:funcall
+     (infer-funcall context (first args) (rest args)))
+    (checkmate.lang:truly-the
+     (assert (= (length args) 2))
+     (infer-truly-the context (first args) (second args)))
+    (checkmate.lang:the
+     (assert (= (length args) 2))
+     (infer-the context (first args) (second args)))
+    (checkmate.lang:lambda
+     (infer-lambda-form context (first args) (rest args)))
+    (checkmate.lang:let
+     (infer-let-form context (first args) (rest args)))
+    (otherwise
+     (or (with-slots (infer-special-form)
+             (slot-value context 'type-system)
+           (when infer-special-form
+             (funcall infer-special-form context name args)))
+         (infer-function-call context name args)))))
 
 ;;------------------------------------------------------------
 
@@ -88,34 +70,22 @@
          `(quote ,quoted-expression)
          context))
 
-(defun infer-function-form (context function-designator)
-  (let ((ftype (get-function-type context function-designator)))
-    (assert ftype () "TType: No function named ~a found in current scope"
-            function-designator)
-    `(truly-the ,ftype (function ,function-designator))))
-
-(defun infer-if (context test then else)
-  (with-slots (type-system) context
-    (let* (;; {TODO} support any object in test
-           (typed-test
-            (check context test (designator->type
-                                 type-system
-                                 (slot-value type-system
-                                             'boolean-type-designator))))
-           ;; {TODO} can we support 'or' types here?
-           (typed-then (infer context then))
-           (let-type (type-of-typed-expression typed-then))
-           (typed-else (check context else let-type)))
-      `(truly-the ,let-type
-                  (if ,typed-test
-                      ,typed-then
-                      ,typed-else)))))
-
 (defun infer-construct (context designator form)
   ;; Acts as no-op. The form is correctly types so return as is
   (with-slots (type-system) context
     (let ((type (designator->type type-system designator)))
       `(truly-the ,type ,form))))
+
+(defun infer-progn (context body)
+  (let* ((butlast
+          (loop
+             :for form :in (butlast body)
+             :collect (infer context form)))
+         (last1 (infer context (car (last body)))))
+    `(truly-the ,(type-of-typed-expression last1)
+                (progn
+                  ,@butlast
+                  ,last1))))
 
 (defun infer-truly-the (context type form)
   ;; Acts as no-op. The form is correctly types so return as is
@@ -130,16 +100,7 @@
       (assert (eq 'truly-the (first typed-form)))
       `(truly-the ,type ,(third typed-form)))))
 
-(defun infer-progn (context body)
-  (let* ((butlast
-          (loop
-             :for form :in (butlast body)
-             :collect (infer context form)))
-         (last1 (infer context (car (last body)))))
-    `(truly-the ,(type-of-typed-expression last1)
-                (progn
-                  ,@butlast
-                  ,last1))))
+
 
 (defun infer-let-form (context declarations body)
   (destructuring-bind (inferred-decls type-pairs)
@@ -156,11 +117,16 @@
                   (let ,inferred-decls
                     ,typed-body)))))
 
+(defun infer-function-form (context function-designator)
+  (let ((ftype (get-function-type context function-designator)))
+    (assert ftype () "TType: No function named ~a found in current scope"
+            function-designator)
+    `(truly-the ,ftype (function ,function-designator))))
+
 (defun infer-function-call (context name arg-forms)
-  (let ((func-type (get-function-type context name)))
-    (if func-type
-        (let* ((func-type-ref (instantiate-function-type func-type))
-               (func-type (deref func-type-ref)))
+  (let ((func-type-ref (get-function-type context name)))
+    (if func-type-ref
+        (let ((func-type (deref func-type-ref)))
           (destructuring-bind (typed-arg-forms return-type)
               (check-funcall context func-type arg-forms
                              `(,name ,@arg-forms))
@@ -280,7 +246,7 @@
                                (second target))
                    :do (assert (find target arg-unknowns))
                    :do (setf (gethash target constraints-lookup)
-                             (cons constraint
+`                             (cons constraint
                                    (gethash target
                                             constraints-lookup))))))))
     (values constraints-lookup constraints)))

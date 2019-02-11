@@ -5,9 +5,30 @@
 
 (defclass type-system ()
   ((name :initarg :name)
-   (boolean-type-designator :initarg :boolean-type-designator)
-   (true-symbol :initarg :true-symbol)
-   (false-symbol :initarg :false-symbol)))
+   (infer-atom-name)
+   (infer-atom)
+   (infer-special-form-name :initform nil)
+   (infer-special-form :initform nil)
+   (type-expander-name :initform 'default-type-designator-expander)
+   (type-expander :initform #'default-type-designator-expander)
+   (get-type-spec-name)
+   (get-type-spec)
+   (get-constraint-spec-name :initform 'default-thing-getter)
+   (get-constraint-spec :initform #'default-thing-getter)
+   (get-parameter-spec-name :initform 'default-thing-getter)
+   (get-parameter-spec :initform #'default-thing-getter)
+   (get-top-level-function-type-name :initform 'default-thing-getter)
+   (get-top-level-function-type :initform #'default-thing-getter)
+   (get-top-level-var-type-name :initform 'default-thing-getter)
+   (get-top-level-var-type :initform #'default-thing-getter)))
+
+(defun default-type-designator-expander (type-system designator)
+  (declare (ignore type-system))
+  designator)
+
+(defun default-thing-getter (type-system x)
+  (declare (ignore type-system x))
+  nil)
 
 ;;------------------------------------------------------------
 ;; Contexts
