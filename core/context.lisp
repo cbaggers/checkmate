@@ -3,7 +3,10 @@
 ;;------------------------------------------------------------
 
 (defun make-check-context (type-system-designator)
-  (let ((tsys (find-type-system type-system-designator)))
+  (let ((tsys
+         (etypecase type-system-designator
+           (symbol (find-type-system type-system-designator))
+           (type-system type-system-designator))))
     (make-instance 'check-context
                    :type-system tsys)))
 

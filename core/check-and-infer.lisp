@@ -12,15 +12,21 @@
 
 ;;------------------------------------------------------------
 
-(defun infer (context expression)
+(defun infer (context-designator expression)
   "The type-system equivalent of eval.
    Assumes the expression is macroexpanded"
-  (with-slots (infer-atom) (slot-value context 'type-system)
-    (if (atom expression)
-        (or (funcall infer-atom context expression)
-            (error "Could not infer the type for the atom ~a"
-                   expression))
-        (infer-form context (first expression) (rest expression)))))
+  (let* ((name context-designator)
+         (context
+          (etypecase name
+            (symbol (make-check-context name))
+            (type-system (make-check-context name))
+            (check-context name))))
+    (with-slots (infer-atom) (slot-value context 'type-system)
+      (if (atom expression)
+          (or (funcall infer-atom context expression)
+              (error "Could not infer the type for the atom ~a"
+                     expression))
+          (infer-form context (first expression) (rest expression))))))
 
 ;;------------------------------------------------------------
 
