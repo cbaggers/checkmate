@@ -64,27 +64,19 @@
           (get-constraint-spec-name
            :initform ',get-constraint-spec)
           (get-constraint-spec
-           :initform ',(if get-constraint-spec
-                           `(lambda (x y) (,get-constraint-spec x y))
-                           'default-thing-getter))
+           :initform (lambda (x y) (,get-constraint-spec x y)))
           (get-parameter-spec-name
            :initform ',get-parameter-spec)
           (get-parameter-spec
-           :initform ',(if get-parameter-spec
-                           `(lambda (x y) (,get-parameter-spec x y))
-                           'default-thing-getter))
+           :initform (lambda (x y) (,get-parameter-spec x y)))
           (get-top-level-function-type-name
            :initform ',get-top-level-function-type)
           (get-top-level-function-type
-           :initform ',(if get-top-level-function-type
-                           `(lambda (x y) (,get-top-level-function-type x y))
-                           'default-thing-getter))
+           :initform (lambda (x y) (,get-top-level-function-type x y)))
           (get-top-level-var-type-name
            :initform ',get-top-level-var-type)
           (get-top-level-var-type
-           :initform ',(if get-top-level-var-type
-                           `(lambda (x y) (,get-top-level-var-type x y))
-                           'default-thing-getter))))
+           :initform (lambda (x y) (,get-top-level-var-type x y)))))
        (register-type-system ',name)
        ',name)))
 
