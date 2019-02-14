@@ -5,15 +5,16 @@
 (defun find-ttype (type-system-designator type-designator)
   (designator->type (etypecase type-system-designator
                       (check-context
-                       (slot-value type-system-designator 'type-system))
-                      (type-system
                        type-system-designator)
+                      (type-system
+                       (make-check-context type-system-designator))
                       (symbol
-                       (find-type-system type-system-designator)))
+                       (make-check-context
+                        (find-type-system type-system-designator))))
                     type-designator))
 
 (defmacro ttype (type-system-designator designator)
-  (designator->type (find-type-system type-system-designator)
+  (designator->type (make-check-context (find-type-system type-system-designator))
                     designator))
 
 (defun ttype-of (type-ref)
@@ -95,7 +96,7 @@
 (defun designator->type (type-system type-designator)
   (internal-designator-to-type type-system nil nil type-designator))
 
-(defun internal-designator-to-type (type-system
+(defun internal-designator-to-type (context
                                     named-unknowns
                                     constraints
                                     designator)
@@ -114,10 +115,10 @@
        (take-ref (make-instance
                   'tfunction
                   :arg-types (mapcar (lambda (x)
-                                       (designator->type type-system x))
+                                       (designator->type context x))
                                      (second designator))
                   :return-type (designator->type
-                                type-system
+                                context
                                 (third designator)))))
       ;;
       ;; is a user type or unknown
@@ -135,14 +136,14 @@
            ;;
            ;; user type
            (with-slots (get-type-spec type-expander)
-               type-system
+               (slot-value context 'type-system)
              (let* ((expanded-designator
                      (funcall type-expander
-                              type-system
+                              context
                               designator))
                     (type-spec
                      (or (funcall get-type-spec
-                                  type-system
+                                  (slot-value context 'type-system)
                                   expanded-designator)
                          (error "Could not find type name ~a"
                                 designator))))
@@ -150,7 +151,7 @@
                (let ((args (when (listp expanded-designator)
                              (rest expanded-designator))))
                  ;; note: to-type does return a ref
-                 (to-type type-system
+                 (to-type context
                           type-spec
                           named-unknowns
                           constraints

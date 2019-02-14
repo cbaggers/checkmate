@@ -78,9 +78,8 @@
 
 (defun infer-construct (context designator form)
   ;; Acts as no-op. The form is correctly types so return as is
-  (with-slots (type-system) context
-    (let ((type (designator->type type-system designator)))
-      `(truly-the ,type ,form))))
+  (let ((type (designator->type context designator)))
+    `(truly-the ,type ,form)))
 
 (defun infer-progn (context body)
   (let* ((butlast
@@ -100,13 +99,10 @@
   `(truly-the ,type ,form))
 
 (defun infer-the (context type-designator form)
-  (with-slots (type-system) context
-    (let* ((type (designator->type type-system type-designator))
-           (typed-form (check context form type)))
-      (assert (eq 'truly-the (first typed-form)))
-      `(truly-the ,type ,(third typed-form)))))
-
-
+  (let* ((type (designator->type context type-designator))
+         (typed-form (check context form type)))
+    (assert (eq 'truly-the (first typed-form)))
+    `(truly-the ,type ,(third typed-form))))
 
 (defun infer-let-form (context declarations body)
   (destructuring-bind (inferred-decls type-pairs)
@@ -213,19 +209,18 @@
                                    arg-specs
                                    constraints
                                    named-unknowns)
-  (with-slots (type-system) context
-    (loop
-       :for spec :in arg-specs
-       :for (name type) := spec
-       :collect (list name
-                      (if type
-                          (internal-designator-to-type type-system
-                                                       named-unknowns
-                                                       constraints
-                                                       type)
-                          (let ((constraints-for-this
-                                 (gethash type constraints)))
-                            (make-unknown constraints-for-this)))))))
+  (loop
+     :for spec :in arg-specs
+     :for (name type) := spec
+     :collect (list name
+                    (if type
+                        (internal-designator-to-type context
+                                                     named-unknowns
+                                                     constraints
+                                                     type)
+                        (let ((constraints-for-this
+                               (gethash type constraints)))
+                          (make-unknown constraints-for-this))))))
 
 ;; {TODO} handle AND types
 ;; {TODO} this assumes only regular args (no &key &optional etc)

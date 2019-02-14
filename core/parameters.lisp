@@ -80,8 +80,8 @@
 
 ;;------------------------------------------------------------
 
-(defun ttype-designator-to-param (type-system val)
-  (designator->type type-system val))
+(defun ttype-designator-to-param (context val)
+  (designator->type context val))
 
 (defun late-initialize-param-spec (spec)
   (unless (slot-boundp spec 'equal)
