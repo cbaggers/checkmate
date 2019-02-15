@@ -1,5 +1,7 @@
 (in-package :checkmate)
 
+;; {TODO} disallow names to start with ~
+
 ;;------------------------------------------------------------
 
 (defun populate-constraint (type-system constraint-ref named-unknowns)

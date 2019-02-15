@@ -1,5 +1,7 @@
 (in-package :checkmate)
 
+;; {TODO} disallow names to start with ~
+
 ;;------------------------------------------------------------
 
 (defun construct-designator-args (type-system

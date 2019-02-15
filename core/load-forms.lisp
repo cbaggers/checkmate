@@ -70,7 +70,7 @@
   (declare (ignore environment))
   (with-slots (arg-types return-type) obj
     `(make-instance 'tfunction
-                    :arg-types ,(cons 'list arg-types)
+                    :arg-types ,(cons 'vector arg-types)
                     :return-type ,return-type)))
 
 (defmethod make-load-form ((obj ttype-parameter-spec)

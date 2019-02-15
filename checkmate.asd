@@ -28,4 +28,6 @@
                (:file "core/ttype-param")
                (:file "core/check-and-infer")
                ;;
+               (:file "core/match")
+               ;;
                (:file "core/print")))

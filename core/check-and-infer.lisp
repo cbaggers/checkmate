@@ -140,16 +140,23 @@
                context))))
 
 (defun infer-funcall (context func-form arg-forms)
-  (let* ((arg-len (length arg-forms))
-         (arg-types (loop
-                       :repeat arg-len
-                       :collect (make-unknown)))
-         (check-type (make-instance
-                      'tfunction
-                      :arg-types arg-types
-                      :return-type (make-unknown)))
-         (check-type-ref (take-ref check-type))
-         (typed-func-form (check context func-form check-type-ref)))
+  (let* ((arg-len
+          (length arg-forms))
+         (arg-types
+          (let ((tmp (make-array arg-len)))
+            (loop
+               :for i :below arg-len
+               :do (setf (aref tmp i) (make-unknown)))
+            tmp))
+         (check-type
+          (make-instance
+           'tfunction
+           :arg-types arg-types
+           :return-type (make-unknown)))
+         (check-type-ref
+          (take-ref check-type))
+         (typed-func-form
+          (check context func-form check-type-ref)))
     (destructuring-bind (typed-arg-forms return-type)
         (check-funcall context check-type arg-forms
                        `(funcall ,func-form ,@arg-forms))
@@ -167,7 +174,7 @@
     (let* ((typed-arg-forms
             (loop
                :for arg-form :in arg-forms
-               :for arg-type :in arg-types
+               :for arg-type :across arg-types
                :collect (check context arg-form arg-type))))
       (list typed-arg-forms return-type))))
 
@@ -190,11 +197,11 @@
                   named-unknowns))
           (let* ((body-context (add-bindings context processed-args))
                  (typed-body (infer body-context `(progn ,@body)))
-                 (arg-types (mapcar #'second processed-args))
+                 (arg-types (map 'vector #'second processed-args))
                  (return-type (type-of-typed-expression typed-body))
                  (typed-args (loop
                                 :for (name) :in args
-                                :for type :in arg-types
+                                :for type :across arg-types
                                 :collect (list name type))))
             `(truly-the
               ,(take-ref (make-instance 'tfunction

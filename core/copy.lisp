@@ -24,9 +24,10 @@
           (with-slots (arg-types return-type known-complete) type
             (let ((new (make-instance
                         'tfunction
-                        :arg-types (mapcar (lambda (a)
-                                             (%copy-type (deref a) seen))
-                                           arg-types)
+                        :arg-types (map 'vector
+                                        (lambda (a)
+                                          (%copy-type (deref a) seen))
+                                        arg-types)
                         :return-type (%copy-type (deref return-type) seen)
                         :known-complete known-complete)))
               (setf (gethash type seen) new))))))

@@ -65,4 +65,7 @@
            :unknown-param
            :generalized-function-type
 
-           :truly-the))
+           :truly-the
+
+           :match-ttype
+           :ematch-ttype))

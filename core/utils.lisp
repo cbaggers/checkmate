@@ -7,4 +7,7 @@
      :when (find val rest)
      :do (return t)))
 
+(defun last1 (list)
+  (car (last list)))
+
 ;;------------------------------------------------------------

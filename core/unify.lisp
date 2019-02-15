@@ -21,9 +21,10 @@
               (unify-user-type type-a type-b mutate-p))
          t)
         ((and (typep a 'tfunction) (typep b 'tfunction))
-         (mapcar (lambda (x y) (unify x y mutate-p))
-                 (slot-value a 'arg-types)
-                 (slot-value b 'arg-types))
+         (map 'list
+              (lambda (x y) (unify x y mutate-p))
+              (slot-value a 'arg-types)
+              (slot-value b 'arg-types))
          (unify (slot-value a 'return-type)
                 (slot-value b 'return-type)
                 mutate-p))

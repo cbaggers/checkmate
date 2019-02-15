@@ -1,5 +1,7 @@
 (in-package :checkmate)
 
+;; {TODO} disallow names to start with ~
+
 ;;------------------------------------------------------------
 
 (defun find-ttype (type-system-designator type-designator)
@@ -83,7 +85,7 @@
        (slot-value type 'name))
       (tfunction
        (with-slots (arg-types return-type) type
-         `(function ,(mapcar #'ttype-of arg-types)
+         `(function ,(map 'list #'ttype-of arg-types)
                     ,(ttype-of return-type))))
       (user-ttype
        (with-slots (name arg-vals) type
@@ -114,9 +116,10 @@
        (assert (= (length designator) 3))
        (take-ref (make-instance
                   'tfunction
-                  :arg-types (mapcar (lambda (x)
-                                       (designator->type context x))
-                                     (second designator))
+                  :arg-types (map 'vector
+                                  (lambda (x)
+                                    (designator->type context x))
+                                  (second designator))
                   :return-type (designator->type
                                 context
                                 (third designator)))))
