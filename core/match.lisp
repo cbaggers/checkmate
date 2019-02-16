@@ -45,7 +45,7 @@
          (otherwise (match-err ,form ,patterns)))))
 
 (defmacro when-ttype-matches (var pattern next &body body)
-  (expand-ttype-pattern var pattern body next))
+  (expand-ttype-pattern var pattern body next t))
 
 (defmacro match-err (form patterns)
   `(error
@@ -53,9 +53,19 @@
              "ematch-type: The form ~a did not match any of:~{~%- ~a~}"
              form patterns)))
 
+(defmacro dbind-ttype (pattern form &body body)
+  (let* ((gform (gensym "ttype")))
+    `(let ((,gform ,form))
+       ,(expand-ttype-pattern gform pattern body nil nil))))
+
+#+nil
+(defun goo (jam)
+  (dbind-ttype (function (~a) i8) jam
+    a))
+
 ;;------------------------------------------------------------
 
-(defun expand-ttype-pattern (type-ref pattern body on-fail)
+(defun expand-ttype-pattern (type-ref pattern body on-fail use-tests)
   (let* ((symb (gensym "temp"))
          (pairs (list (list symb pattern)))
          (res nil))
@@ -79,16 +89,30 @@
                 (declare (ignore next))
                 (let* ((rbind
                         (if resulting-bindings
-                            `((let ,resulting-bindings ,@wip))
+                            `((let ,resulting-bindings
+                                (declare
+                                 (ignorable
+                                  ,@(remove-if
+                                     #'symbol-package
+                                     (mapcar #'car resulting-bindings))))
+                                ,@wip))
                             wip))
-                       (test `(if (and ,@tests)
-                                  (progn ,@rbind)
-                                  ,(when on-fail `(,on-fail))))
+                       (test (if use-tests
+                                 `(if (and ,@tests)
+                                      (progn ,@rbind)
+                                      ,(when on-fail `(,on-fail)))
+                                 `(progn ,@rbind)))
                        (gbind
                         (if guarenteed-bindings
-                            `(let ,guarenteed-bindings ,test)
+                            `(let ,guarenteed-bindings
+                               (declare
+                                (ignorable
+                                 ,@(remove-if
+                                    #'symbol-package
+                                    (mapcar #'car guarenteed-bindings))))
+                               ,test)
                             test)))
-                  (if (eq self-test t)
+                  (if (or (eq self-test t) (not use-tests))
                       `(,gbind)
                       `((if ,self-test
                             ,gbind
@@ -143,7 +167,7 @@
                 :for i :from 0
                 :when (bindingp arg)
                 :collect `(,(binding-var arg)
-                            (deref (aref ,g-arg-types ,i))))
+                            (aref ,g-arg-types ,i)))
              ,@(when (bindingp ret-pattern)
                  `((,(binding-var ret-pattern)
                      (deref ,g-ret-type))))
