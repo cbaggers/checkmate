@@ -68,4 +68,5 @@
            :truly-the
 
            :match-ttype
-           :ematch-ttype))
+           :ematch-ttype
+           :dbind-ttype))

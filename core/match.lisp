@@ -124,6 +124,7 @@
             res
             :initial-value body)))
       `(let ((,symb (deref ,type-ref)))
+         (declare (ignorable ,symb))
          ,@body))))
 
 (defun dispatch-expand-pattern (symb pattern)
