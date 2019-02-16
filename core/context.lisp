@@ -18,7 +18,7 @@
                    (with-slots (get-top-level-function-type)
                        type-system
                      (funcall get-top-level-function-type
-                              type-system
+                              context
                               name))
                    (error "Could not get function type for ~a"
                           name)))))

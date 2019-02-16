@@ -48,7 +48,7 @@
                       :arg-vals vals
                       :known-complete already-complete)))))
 
-(defun make-ttype-spec (type-system
+(defun make-ttype-spec (context
                         designator
                         where
                         custom-spec-data)
@@ -60,7 +60,7 @@
             (loop
                :for arg :in req-args
                :collect (%get-parameter-spec
-                         type-system
+                         context
                          (or (second (find arg where :key #'first))
                              'ttype)))))
       (make-instance
@@ -146,7 +146,7 @@
                               designator))
                     (type-spec
                      (or (funcall get-type-spec
-                                  (slot-value context 'type-system)
+                                  context
                                   expanded-designator)
                          (error "Could not find type name ~a"
                                 designator))))

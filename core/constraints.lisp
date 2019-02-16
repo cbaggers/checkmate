@@ -4,21 +4,22 @@
 
 ;;------------------------------------------------------------
 
-(defun populate-constraint (type-system constraint-ref named-unknowns)
+(defun populate-constraint (context constraint-ref named-unknowns)
   (let ((designator (slot-value constraint-ref 'designator)))
     (destructuring-bind (principle-name . args)
         (uiop:ensure-list designator)
       (declare (ignore principle-name))
       (assert (not (unknown-designator-name-p designator)) ()
               "Constraint cannot be unknown")
-      (with-slots (get-constraint-spec) type-system
+      (with-slots (get-constraint-spec)
+          (slot-value context 'type-system)
         (let ((spec (or (funcall get-constraint-spec
-                                 type-system
+                                 context
                                  designator)
                         (error "Could not infer type of constraint ~a"
                                designator))))
           (setf (deref constraint-ref)
-                (to-constraint type-system
+                (to-constraint context
                                spec
                                named-unknowns
                                args)))))))
@@ -28,11 +29,11 @@
     (setf (slot-value spec 'satisfies)
           (symbol-function (slot-value spec 'satisfies-name)))))
 
-(defun to-constraint (type-system spec named-unknowns args)
+(defun to-constraint (context spec named-unknowns args)
   (late-initialize-constraint-spec spec)
   (with-slots (arg-param-specs) spec
     (let* ((constructed
-            (construct-designator-args type-system
+            (construct-designator-args context
                                        spec
                                        named-unknowns
                                        nil
@@ -46,7 +47,7 @@
                      :name (slot-value spec 'name)
                      :arg-vals vals))))
 
-(defun make-constraint-spec (type-system
+(defun make-constraint-spec (context
                              designator
                              where
                              satisfies-this-p
@@ -60,7 +61,7 @@
             (loop
                :for arg :in req-args
                :collect (%get-parameter-spec
-                         type-system
+                         context
                          (or (second (find arg where :key #'first))
                              'ttype)))))
       (make-instance

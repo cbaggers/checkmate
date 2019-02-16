@@ -4,7 +4,7 @@
 
 ;;------------------------------------------------------------
 
-(defun construct-designator-args (type-system
+(defun construct-designator-args (context
                                   type-spec
                                   named-unknowns
                                   constraints
@@ -58,7 +58,7 @@
                                (make-unknown-param))))))
              ;;
              ;; param type
-             (to-param type-system
+             (to-param context
                        param-spec
                        val)))))
 
@@ -95,11 +95,11 @@
           (when (slot-value spec 'valid-p-name)
             (symbol-function (slot-value spec 'valid-p-name))))))
 
-(defun to-param (type-system spec val)
+(defun to-param (context spec val)
   (late-initialize-param-spec spec)
   (let ((name (slot-value spec 'name)))
     (if (eq name 'ttype)
-        (ttype-designator-to-param type-system val)
+        (ttype-designator-to-param context val)
         (let ((valid-p (slot-value spec 'valid-p)))
           (assert (funcall valid-p val) ()
                   "~a is not a valid value to make a ~a type parameter"

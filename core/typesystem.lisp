@@ -94,10 +94,10 @@
 
 (defvar *ttype-param-spec*)
 
-(defun %get-parameter-spec (type-system name)
+(defun %get-parameter-spec (context name)
   (if (eq name 'ttype)
       *ttype-param-spec*
-      (with-slots (get-parameter-spec) type-system
-        (or (funcall get-parameter-spec type-system name)
+      (with-slots (get-parameter-spec) (slot-value context 'type-system)
+        (or (funcall get-parameter-spec context name)
             (error "Could not find parameter spec for ~a"
                    name)))))
