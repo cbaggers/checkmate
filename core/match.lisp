@@ -21,6 +21,10 @@
     (otherwise
      "oh")))
 
+;; {TODO} A way to improve this would be to group common sub-designators
+;;        and use calling the local functions to navigate between these
+;;        sub parts.
+
 (defmacro match-ttype (form &body cases)
   (let* ((gform (gensym "ttype"))
          (gnames (loop :for i :below (length cases) :collect (gensym i)))
