@@ -178,68 +178,75 @@
                :collect (check context arg-form arg-type))))
       (list typed-arg-forms return-type))))
 
+(defun group-declarations (declarations)
+  (mapcan #'rest declarations))
+
 (defun infer-lambda-form (context args body)
   (multiple-value-bind (body declarations doc-string)
       (alexandria:parse-body body :documentation t)
     (let* ((args (mapcar #'alexandria:ensure-list args))
-           (named-unknowns
-            (make-hash-table)))
-      (multiple-value-bind (constraints-lookup constraints)
-          (parse-declarations declarations args)
-        (let ((processed-args
-               (process-function-arg-specs
-                context args constraints-lookup named-unknowns)))
-          (loop
-             :for constraint :in constraints
-             :do (populate-constraint
-                  (slot-value context 'type-system)
-                  constraint
-                  named-unknowns))
-          (let* ((body-context (add-bindings context processed-args))
-                 (typed-body (infer body-context `(progn ,@body)))
-                 (arg-types (map 'vector #'second processed-args))
-                 (return-type (type-of-typed-expression typed-body))
-                 (typed-args (loop
-                                :for (name) :in args
-                                :for type :across arg-types
-                                :collect (list name type))))
-            `(truly-the
-              ,(take-ref (make-instance 'tfunction
-                                        :arg-types arg-types
-                                        :return-type return-type))
-              (lambda ,typed-args
-                ,@(when doc-string (list doc-string))
-                ,@declarations
-                ,typed-body))))))))
+           (arg-type-desigs (mapcar #'second args))
+           (declarations (group-declarations declarations))
+           (processed-arg-types
+            (process-function-arg-specs context arg-type-desigs
+                                        declarations))
+           (typed-args (loop
+                          :for (name) :in args
+                          :for type :across processed-arg-types
+                          :collect (list name type)))
+           (body-context (add-bindings context typed-args))
+           (typed-body (infer body-context `(progn ,@body)))
+           (return-type (type-of-typed-expression typed-body)))
+      `(truly-the
+        ,(take-ref (make-instance
+                    'tfunction
+                    :arg-types processed-arg-types
+                    :return-type return-type))
+        (lambda ,typed-args
+          ,@(when doc-string (list doc-string))
+          ,@declarations
+          ,typed-body)))))
 
 (defun process-function-arg-specs (context
-                                   arg-specs
-                                   constraints
-                                   named-unknowns)
-  (loop
-     :for spec :in arg-specs
-     :for (name type) := spec
-     :collect (list name
-                    (if type
-                        (internal-designator-to-type context
-                                                     named-unknowns
-                                                     constraints
-                                                     type)
-                        (let ((constraints-for-this
-                               (gethash type constraints)))
-                          (make-unknown constraints-for-this))))))
+                                   arg-type-designators
+                                   declarations)
+  (multiple-value-bind (constraints-lookup constraints)
+      (parse-declarations declarations arg-type-designators)
+    (let* ((named-unknowns (make-hash-table))
+           (processed-arg-types
+            (mapcar
+             (lambda (type)
+               (if type
+                   (internal-designator-to-type context
+                                                named-unknowns
+                                                constraints-lookup
+                                                type)
+                   (let ((constraints-for-this
+                          (gethash type constraints-lookup)))
+                     (make-unknown constraints-for-this))))
+             arg-type-designators)))
+      (loop
+         :for constraint :in constraints
+         :do (populate-constraint
+              context
+              constraint
+              named-unknowns))
+      (values
+       (make-array
+        (length processed-arg-types)
+        :initial-contents processed-arg-types)
+       named-unknowns))))
 
 ;; {TODO} handle AND types
 ;; {TODO} this assumes only regular args (no &key &optional etc)
-(defun parse-declarations (declaration-forms args)
-  (let* ((flat (alexandria:flatten (mapcar #'second args)))
+(defun parse-declarations (declarations arg-types)
+  (let* ((flat (alexandria:flatten arg-types))
          (arg-unknowns (remove-duplicates
                         (remove-if-not #'unknown-designator-name-p flat)))
-         (merged (mapcar #'second declaration-forms))
          (constraints nil)
          (constraints-lookup (make-hash-table)))
     (loop
-       :for decl :in merged
+       :for decl :in declarations
        :do (ecase (first decl)
              (satisfies
               (let* ((spec (second decl))
@@ -254,9 +261,29 @@
                                (second target))
                    :do (assert (find target arg-unknowns))
                    :do (setf (gethash target constraints-lookup)
-`                             (cons constraint
+                             (cons constraint
                                    (gethash target
                                             constraints-lookup))))))))
     (values constraints-lookup constraints)))
+
+;;------------------------------------------------------------
+
+(defun make-function-ttype (context
+                            arg-type-designators
+                            return-type-designator
+                            declarations)
+  (multiple-value-bind (arg-types named-unknowns)
+      (process-function-arg-specs
+       context arg-type-designators declarations)
+    (let ((return-type
+           (or (gethash return-type-designator named-unknowns)
+               (find-ttype context return-type-designator))))
+      (take-ref (make-instance 'tfunction
+                               :arg-types arg-types
+                               :return-type return-type)))))
+
+;; (make-function-ttype
+;;  (make-check-context 'tables) '(?a ?a) (ttype tables boolean)
+;;  '((satisfies disposable ?a)))
 
 ;;------------------------------------------------------------
