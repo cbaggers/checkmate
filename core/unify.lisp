@@ -18,7 +18,7 @@
               b-is-user-type-p
               (eq (slot-value a 'name)
                   (slot-value b 'name))
-              (unify-user-type type-a type-b mutate-p))
+              (unify-user-type a b mutate-p))
          t)
         ((and (typep a 'tfunction) (typep b 'tfunction))
          (map 'list
@@ -57,22 +57,20 @@
 
 ;;------------------------------------------------------------
 
-(defun unify-user-type (type-a type-b mutate-p)
-  (let* ((a (deref type-a))
-         (b (deref type-b)))
-    (assert (eq (slot-value a 'name)
-                (slot-value b 'name)))
-    (loop
-       :for aparam :across (slot-value a 'arg-vals)
-       :for bparam :across (slot-value b 'arg-vals)
-       :for a-is-type := (typep aparam 'type-ref)
-       :for b-is-type := (typep bparam 'type-ref)
-       :do (if (or a-is-type b-is-type)
-               (progn
-                 (assert (and a-is-type b-is-type))
-                 (unify aparam bparam mutate-p))
-               (unify-params aparam bparam t)))
-    t))
+(defun unify-user-type (a b mutate-p)
+  (assert (eq (slot-value a 'name)
+              (slot-value b 'name)))
+  (loop
+     :for aparam :across (slot-value a 'arg-vals)
+     :for bparam :across (slot-value b 'arg-vals)
+     :for a-is-type := (typep aparam 'type-ref)
+     :for b-is-type := (typep bparam 'type-ref)
+     :do (if (or a-is-type b-is-type)
+             (progn
+               (assert (and a-is-type b-is-type))
+               (unify aparam bparam mutate-p))
+             (unify-params aparam bparam t)))
+  t)
 
 ;;------------------------------------------------------------
 
