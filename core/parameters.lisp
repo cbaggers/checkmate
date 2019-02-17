@@ -1,6 +1,6 @@
 (in-package :checkmate)
 
-;; {TODO} disallow names to start with ~
+;; {TODO} disallow names to start with ~ or ?
 
 ;;------------------------------------------------------------
 
