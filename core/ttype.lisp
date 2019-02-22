@@ -4,6 +4,59 @@
 
 ;;------------------------------------------------------------
 
+(defun find-ttype-by-principle-name (type-system-designator
+                                     principle-type-name)
+  (%find-ttype-by-principle-name
+   (etypecase type-system-designator
+     (check-context
+      type-system-designator)
+     (type-system
+      (make-check-context type-system-designator))
+     (symbol
+      (make-check-context
+       (find-type-system type-system-designator))))
+   principle-type-name))
+
+(defun %find-ttype-by-principle-name (context principle-name)
+  (check-type principle-name symbol)
+  (case principle-name
+    ;;
+    ;; always use make-unknown
+    (unknown
+     (error "BUG: Attempt to make unknown type via designator"))
+    ;;
+    ;; non user type
+    (function
+     (error "BUG: function types have no principle name"))
+    ;;
+    ;; is a user type or unknown
+    (otherwise
+     (with-slots (get-type-spec) (slot-value context 'type-system)
+       (let* ((type-spec
+               (or (funcall get-type-spec
+                            context
+                            principle-name)
+                   (error "Could not find type name ~a"
+                          principle-name))))
+         ;; note: to-type returns a ref
+         (with-slots (arg-param-specs) type-spec
+           (let* ((len (length arg-param-specs))
+                  (constructed
+                   (loop
+                      :for pspec :across arg-param-specs
+                      :collect
+                        (if (eq (slot-value pspec 'name) 'ttype)
+                            (make-unknown nil)
+                            (make-unknown-param))))
+                  (vals
+                   (make-array len :initial-contents constructed)))
+             (take-ref
+              (make-instance 'user-ttype
+                             :spec type-spec
+                             :name (slot-value type-spec 'name)
+                             :arg-vals vals
+                             :known-complete (= len 0))))))))))
+
 (defun find-ttype (type-system-designator type-designator)
   (designator->type (etypecase type-system-designator
                       (check-context
@@ -16,8 +69,9 @@
                     type-designator))
 
 (defmacro ttype (type-system-designator designator)
-  (designator->type (make-check-context (find-type-system type-system-designator))
-                    designator))
+  (designator->type
+   (make-check-context (find-type-system type-system-designator))
+   designator))
 
 (defun ttype-of (type-ref)
   (with-slots (target) type-ref

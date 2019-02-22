@@ -42,6 +42,7 @@
            :ttype-of
            :type-of-typed-expression
            :find-ttype
+           :find-ttype-by-principle-name
            :make-function-ttype
 
            :check
