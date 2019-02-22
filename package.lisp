@@ -49,6 +49,7 @@
            :infer-variable
            :construct
            :generalize
+           :instantiate-function-type
 
            :type-system
            :check-context
