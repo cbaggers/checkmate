@@ -46,11 +46,14 @@
 (defmethod make-load-form ((obj user-ttype)
                            &optional environment)
   (declare (ignore environment))
-  (with-slots (spec name arg-vals) obj
-    `(make-instance 'user-ttype
-                    :spec ,spec
-                    :name ',name
-                    :arg-vals ,arg-vals)))
+  (with-slots (spec name arg-vals refs known-complete) obj
+    (values
+     `(make-instance 'user-ttype
+                     :spec ,spec
+                     :name ',name
+                     :arg-vals ,arg-vals
+                     :known-complete ,known-complete)
+     `(setf (slot-value ,obj 'refs) ,(cons 'list refs)))))
 
 (defmethod make-load-form ((obj type-ref)
                            &optional environment)
@@ -61,17 +64,23 @@
 (defmethod make-load-form ((obj unknown)
                            &optional environment)
   (declare (ignore environment))
-  (with-slots (constraints) obj
-    `(make-instance 'unknown
-                    :constraints ,(cons 'list constraints))))
+  (with-slots (constraints refs known-complete) obj
+    (values
+     `(make-instance 'unknown
+                     :known-complete ,known-complete
+                     :constraints ,(cons 'list constraints))
+     `(setf (slot-value ,obj 'refs) ,(cons 'list refs)))))
 
 (defmethod make-load-form ((obj tfunction)
                            &optional environment)
   (declare (ignore environment))
-  (with-slots (arg-types return-type) obj
-    `(make-instance 'tfunction
-                    :arg-types ,(cons 'vector arg-types)
-                    :return-type ,return-type)))
+  (with-slots (arg-types return-type refs known-complete) obj
+    (values
+     `(make-instance 'tfunction
+                     :arg-types ,(cons 'vector (coerce arg-types 'list))
+                     :return-type ,return-type
+                     :known-complete ,known-complete)
+     `(setf (slot-value ,obj 'refs) ,(cons 'list refs)))))
 
 (defmethod make-load-form ((obj ttype-parameter-spec)
                            &optional environment)
@@ -124,19 +133,12 @@
                            &optional environment)
   (declare (ignore environment))
   (with-slots (spec name arg-vals) obj
-    `(make-instance 'constraint
-                    :spec ,spec
-                    :name ',name
-                    :arg-vals ,arg-vals)))
-
-(defmethod make-load-form ((obj constraint)
-                           &optional environment)
-  (declare (ignore environment))
-  (with-slots (spec name arg-vals) obj
-    `(make-instance 'constraint
-                    :name ',name
-                    :spec ,spec
-                    :arg-vals ,arg-vals)))
+    (values
+     `(make-instance 'constraint
+                     :name ',name
+                     :spec ,spec)
+     `(setf (slot-value ,obj 'arg-vals)
+            (vector ,@(coerce arg-vals 'list))))))
 
 (defmethod make-load-form ((obj constraint-ref)
                            &optional environment)
