@@ -22,25 +22,29 @@
      (take-ref
       (or (gethash type seen)
           (with-slots (arg-types return-type known-complete) type
-            (let ((new (make-instance
+            (let ((wip (make-instance
                         'tfunction
-                        :arg-types (map 'vector
-                                        (lambda (a)
-                                          (%copy-type (deref a) seen))
-                                        arg-types)
-                        :return-type (%copy-type (deref return-type) seen)
                         :known-complete known-complete)))
-              (setf (gethash type seen) new))))))
+              (setf (gethash type seen) wip)
+              (setf (slot-value wip 'arg-types)
+                    (map 'vector
+                         (lambda (a) (%copy-type (deref a) seen))
+                         arg-types))
+              (setf (slot-value wip 'return-type)
+                    (%copy-type (deref return-type) seen))
+              wip)))))
     (user-ttype
      (take-ref
       (or (gethash type seen)
           (with-slots (spec name arg-vals known-complete) type
-            (let ((new (make-instance 'user-ttype
+            (let ((wip (make-instance 'user-ttype
                                       :spec spec
                                       :name name
-                                      :arg-vals (copy-type-args arg-vals seen)
                                       :known-complete known-complete)))
-              (setf (gethash type seen) new))))))))
+              (setf (gethash type seen) wip)
+              (setf (slot-value wip 'arg-vals)
+                    (copy-type-args arg-vals seen))
+              wip)))))))
 
 (defun copy-type-args (args seen)
   (labels ((copy-arg (arg)
@@ -72,7 +76,6 @@
                                  :spec spec
                                  :value value))))))))
 
-
 ;; {TODO} constraint-ref holds designator, should probably copy
 (defun copy-constraint (constraint-ref)
   (check-type constraint-ref constraint-ref)
@@ -87,11 +90,13 @@
      :designator (copy-tree (slot-value constraint-ref 'designator))
      :target
      (or (gethash constraint seen)
-         (setf (gethash constraint seen)
-               (with-slots (spec name arg-vals) constraint
-                 (make-instance 'constraint
-                                :spec spec
-                                :name name
-                                :arg-vals (copy-type-args arg-vals seen))))))))
+         (with-slots (spec name arg-vals) constraint
+           (let ((wip (make-instance 'constraint
+                                     :spec spec
+                                     :name name)))
+             (setf (gethash constraint seen) wip)
+             (setf (slot-value wip 'arg-vals)
+                   (copy-type-args arg-vals seen))
+             wip))))))
 
 ;;------------------------------------------------------------
