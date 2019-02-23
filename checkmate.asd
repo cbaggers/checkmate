@@ -11,6 +11,7 @@
                (:file "core/types")
                (:file "core/load-forms")
                (:file "core/spec-accessors")
+               (:file "core/errors")
                (:file "core/copy")
                (:file "core/typesystem")
                (:file "core/context")
