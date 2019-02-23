@@ -75,8 +75,7 @@
 
 (defun ttype-of (type-ref)
   (with-slots (target) type-ref
-    (with-slots (spec) target
-      (designator-from-type target))))
+    (designator-from-type target)))
 
 (defun ttype-principle-name (type-ref)
   (with-slots (target) type-ref
