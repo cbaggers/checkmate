@@ -32,6 +32,7 @@
            :get-top-level-function-type
            :spec-name
            :spec-custom-data
+           :ttype-custom-data
 
            :make-check-context
            :make-ttype-spec
