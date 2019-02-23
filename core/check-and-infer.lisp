@@ -23,7 +23,7 @@
     (with-slots (infer-atom) (slot-value context 'type-system)
       (if (atom expression)
           (or (funcall infer-atom context expression)
-              (error "Could not infer the type for the atom ~a"
+              (error "Could not infer the type for the atom ~s"
                      expression))
           (infer-form context (first expression) (rest expression))))))
 
