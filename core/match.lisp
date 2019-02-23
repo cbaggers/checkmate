@@ -144,15 +144,16 @@
     (destructuring-bind (arg-patterns ret-pattern) (rest pattern)
       (let ((next
              (append
-              (loop
-                 :for arg :in arg-patterns
-                 :for i :from 0
-                 :unless (bindingp arg)
-                 :collect
-                   (let* ((asymb (gensym (format nil "arg~a" i)))
-                          (b `(,asymb (deref (aref ,g-arg-types ,i)))))
-                     (push b cbindings)
-                     (list asymb arg)))
+              (when (listp arg-patterns)
+                (loop
+                   :for arg :in arg-patterns
+                   :for i :from 0
+                   :unless (bindingp arg)
+                   :collect
+                     (let* ((asymb (gensym (format nil "arg~a" i)))
+                            (b `(,asymb (deref (aref ,g-arg-types ,i)))))
+                       (push b cbindings)
+                       (list asymb arg))))
               (unless (bindingp ret-pattern)
                 (let* ((rsymb (gensym "ret"))
                        (b `(,rsymb (deref ,g-ret-type))))
@@ -165,17 +166,23 @@
          `((,g-arg-types (slot-value ,symb 'arg-types))
            (,g-ret-type (slot-value ,symb 'return-type)))
          ;; tests
-         `((= (length ,g-arg-types) ,(length arg-patterns)))
+         (when (listp arg-patterns)
+           `((= (length ,g-arg-types) ,(length arg-patterns))))
          ;; resulting bindings
-         `(,@(loop
-                :for arg :in arg-patterns
-                :for i :from 0
-                :when (bindingp arg)
-                :collect `(,(binding-var arg)
-                            (aref ,g-arg-types ,i)))
-             ,@(when (bindingp ret-pattern)
+         `(,@(if (listp arg-patterns)
+                 (loop
+                    :for arg :in arg-patterns
+                    :for i :from 0
+                    :when (and (bindingp arg) (not (string= "~" arg)))
+                    :collect `(,(binding-var arg)
+                                (aref ,g-arg-types ,i)))
+                 (when (not (string= "~" arg-patterns))
+                   `((,(binding-var arg-patterns)
+                       (copy-seq ,g-arg-types)))))
+             ,@(when (and (bindingp ret-pattern)
+                          (not (string= "~" ret-pattern)))
                  `((,(binding-var ret-pattern)
-                     (deref ,g-ret-type))))
+                     ,g-ret-type)))
              ,@cbindings)
          ;; next to expand
          next)))))
