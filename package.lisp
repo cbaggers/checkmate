@@ -40,6 +40,7 @@
 
            :ttype
            :ttype-of
+           :ttype-principle-name
            :type-of-typed-expression
            :find-ttype
            :find-ttype-by-principle-name
