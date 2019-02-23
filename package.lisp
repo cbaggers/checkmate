@@ -46,6 +46,7 @@
            :find-ttype-by-principle-name
            :make-function-ttype
 
+           :unifies-p
            :check
            :infer
            :infer-variable

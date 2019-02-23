@@ -75,9 +75,6 @@
 ;;------------------------------------------------------------
 
 (defun check-constraints (type-ref constraints)
-  ;; We can safely use unify here as we tell it not to mutate the types.
-  ;; This means we check everything can work but we dont allow any
-  ;; modification to a type's references.
   (check-type type-ref type-ref)
   (when constraints
     (let ((type (deref type-ref)))

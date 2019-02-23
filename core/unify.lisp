@@ -2,7 +2,15 @@
 
 ;;------------------------------------------------------------
 
-(defun unify (type-a type-b mutate-p)
+(defun unifies-p (type-a type-b)
+  (handler-case
+      (let ((type-a (copy-type type-a))
+            (type-b (copy-type type-b)))
+        (unify type-a type-b)
+        t)
+    (error () nil)))
+
+(defun unify (type-a type-b)
   ;; The only case when mutate-p is nil is when you are trying
   ;; to check constraints as there you dont want the type to aquire
   ;; information from the type
@@ -18,16 +26,15 @@
               b-is-user-type-p
               (eq (slot-value a 'name)
                   (slot-value b 'name))
-              (unify-user-type a b mutate-p))
+              (unify-user-type a b))
          t)
         ((and (typep a 'tfunction) (typep b 'tfunction))
          (map 'list
-              (lambda (x y) (unify x y mutate-p))
+              (lambda (x y) (unify x y))
               (slot-value a 'arg-types)
               (slot-value b 'arg-types))
          (unify (slot-value a 'return-type)
-                (slot-value b 'return-type)
-                mutate-p))
+                (slot-value b 'return-type)))
         (t
          (let* ((a-unknown (typep a 'unknown))
                 (b-unknown (typep b 'unknown))
@@ -46,18 +53,16 @@
                 (retarget-ref type-b new)))
              (a-unknown
               (check-constraints type-b a-constraints)
-              (when mutate-p
-                (retarget-ref type-a b)))
+              (retarget-ref type-a b))
              (b-unknown
               (check-constraints type-a b-constraints)
-              (when mutate-p
-                (retarget-ref type-b a)))
+              (retarget-ref type-b a))
              (t (error "No way to unify ~a and ~a" type-a type-b))))))))
   (values))
 
 ;;------------------------------------------------------------
 
-(defun unify-user-type (a b mutate-p)
+(defun unify-user-type (a b)
   (assert (eq (slot-value a 'name)
               (slot-value b 'name)))
   (loop
@@ -68,13 +73,13 @@
      :do (if (or a-is-type b-is-type)
              (progn
                (assert (and a-is-type b-is-type))
-               (unify aparam bparam mutate-p))
-             (unify-params aparam bparam t)))
+               (unify aparam bparam))
+             (unify-params aparam bparam)))
   t)
 
 ;;------------------------------------------------------------
 
-(defun unify-params (param-a param-b mutate-p)
+(defun unify-params (param-a param-b)
   (check-type param-a param-ref)
   (check-type param-b param-ref)
   (let* ((a (deref param-a))
@@ -91,11 +96,9 @@
                      (slot-value b 'value)))
        t)
       (a-unknown
-       (when mutate-p
-         (retarget-ref param-a b)))
+       (retarget-ref param-a b))
       (b-unknown
-       (when mutate-p
-         (retarget-ref param-b a)))
+       (retarget-ref param-b a))
       (t (error "No way to unify params:~%~a: ~a~%~a: ~a"
                 (slot-value a 'name)
                 (slot-value a 'value)
