@@ -4,10 +4,9 @@
 
 (defun check (context expression type)
   "Returns typed-expression or errors"
-  (let ((typed-expression (infer context expression)))
-    (unify (type-of-typed-expression typed-expression)
-           type
-           t)
+  (let* ((typed-expression (infer context expression))
+         (err (unify (type-of-typed-expression typed-expression) type)))
+    (when err (error err))
     typed-expression))
 
 ;;------------------------------------------------------------

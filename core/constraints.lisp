@@ -91,8 +91,8 @@
                   :unless (unifies-with-constraint constraint)
                   :collect (slot-value (deref constraint) 'name))))
           (when failed
-            (error "Type ~a failed to satisfy the following constraints:~%~{~a~}"
-                   type-ref failed))))))
-  t)
+            (make-instance 'failed-to-satisfy-constraints
+                           :type-ref type-ref
+                           :failed failed)))))))
 
 ;;------------------------------------------------------------

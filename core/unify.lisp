@@ -3,17 +3,18 @@
 ;;------------------------------------------------------------
 
 (defun unifies-p (type-a type-b)
-  (handler-case
-      (let ((type-a (copy-type type-a))
-            (type-b (copy-type type-b)))
-        (unify type-a type-b)
-        t)
-    (error () nil)))
+  (let* ((type-a (copy-type type-a))
+         (type-b (copy-type type-b))
+         (err (unify type-a type-b)))
+    (not err)))
+
+;;------------------------------------------------------------
+
+;; The rest of the function in this file return nil is unification
+;; is successfull and return an instance of an error object if it
+;; failed
 
 (defun unify (type-a type-b)
-  ;; The only case when mutate-p is nil is when you are trying
-  ;; to check constraints as there you dont want the type to aquire
-  ;; information from the type
   (check-type type-a type-ref)
   (check-type type-b type-ref)
   (let* ((a (deref type-a))
@@ -25,16 +26,17 @@
         ((and a-is-user-type-p
               b-is-user-type-p
               (eq (slot-value a 'name)
-                  (slot-value b 'name))
-              (unify-user-type a b))
-         t)
+                  (slot-value b 'name)))
+         (unify-user-type a b))
         ((and (typep a 'tfunction) (typep b 'tfunction))
-         (map 'list
-              (lambda (x y) (unify x y))
-              (slot-value a 'arg-types)
-              (slot-value b 'arg-types))
-         (unify (slot-value a 'return-type)
-                (slot-value b 'return-type)))
+         (loop
+            :for x :across (slot-value a 'arg-types)
+            :for y :across (slot-value b 'arg-types)
+            :for r := (unify x y)
+            :when r :do (return r)
+            :finally (return
+                       (unify (slot-value a 'return-type)
+                              (slot-value b 'return-type)))))
         (t
          (let* ((a-unknown (typep a 'unknown))
                 (b-unknown (typep b 'unknown))
@@ -50,15 +52,21 @@
                           (append a-constraints
                                   b-constraints))))
                 (retarget-ref type-a new)
-                (retarget-ref type-b new)))
+                (retarget-ref type-b new)
+                nil))
              (a-unknown
-              (check-constraints type-b a-constraints)
-              (retarget-ref type-a b))
+              (or (check-constraints type-b a-constraints)
+                  (progn
+                    (retarget-ref type-a b)
+                    nil)))
              (b-unknown
-              (check-constraints type-a b-constraints)
-              (retarget-ref type-b a))
-             (t (error "No way to unify ~a and ~a" type-a type-b))))))))
-  (values))
+              (or (check-constraints type-a b-constraints)
+                  (progn
+                    (retarget-ref type-b a)
+                    nil)))
+             (t (make-instance 'cannot-unify-types
+                               :type-a type-a
+                               :type-b type-b)))))))))
 
 ;;------------------------------------------------------------
 
@@ -70,12 +78,12 @@
      :for bparam :across (slot-value b 'arg-vals)
      :for a-is-type := (typep aparam 'type-ref)
      :for b-is-type := (typep bparam 'type-ref)
-     :do (if (or a-is-type b-is-type)
-             (progn
-               (assert (and a-is-type b-is-type))
-               (unify aparam bparam))
-             (unify-params aparam bparam)))
-  t)
+     :for r := (if (or a-is-type b-is-type)
+                   (progn
+                     (assert (and a-is-type b-is-type))
+                     (unify aparam bparam))
+                   (unify-params aparam bparam))
+       :when r :do (return r)))
 
 ;;------------------------------------------------------------
 
@@ -94,16 +102,18 @@
             (funcall (slot-value (slot-value a 'spec) 'equal)
                      (slot-value a 'value)
                      (slot-value b 'value)))
-       t)
+       nil)
       (a-unknown
-       (retarget-ref param-a b))
+       (retarget-ref param-a b)
+       nil)
       (b-unknown
-       (retarget-ref param-b a))
-      (t (error "No way to unify params:~%~a: ~a~%~a: ~a"
-                (slot-value a 'name)
-                (slot-value a 'value)
-                (slot-value b 'name)
-                (slot-value b 'value)))))
+       (retarget-ref param-b a)
+       nil)
+      (t (make-instance 'cannot-unify-params
+                        :a-name (slot-value a 'name)
+                        :a-val (slot-value a 'value)
+                        :b-name (slot-value b 'name)
+                        :b-val (slot-value b 'value)))))
   (values))
 
 ;;------------------------------------------------------------
