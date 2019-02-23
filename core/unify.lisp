@@ -29,14 +29,20 @@
                   (slot-value b 'name)))
          (unify-user-type a b))
         ((and (typep a 'tfunction) (typep b 'tfunction))
-         (loop
-            :for x :across (slot-value a 'arg-types)
-            :for y :across (slot-value b 'arg-types)
-            :for r := (unify x y)
-            :when r :do (return r)
-            :finally (return
-                       (unify (slot-value a 'return-type)
-                              (slot-value b 'return-type)))))
+         (let ((args-a (slot-value a 'arg-types))
+               (args-b (slot-value b 'arg-types)))
+           (if (= (length args-a) (length args-b))
+               (loop
+                  :for x :across args-a
+                  :for y :across args-b
+                  :for r := (unify x y)
+                  :when r :do (return r)
+                  :finally (return
+                             (unify (slot-value a 'return-type)
+                                    (slot-value b 'return-type))))
+               (make-instance 'cannot-unify-types
+                              :type-a type-a
+                              :type-b type-b))))
         (t
          (let* ((a-unknown (typep a 'unknown))
                 (b-unknown (typep b 'unknown))
