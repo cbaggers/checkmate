@@ -45,7 +45,9 @@
                                i name))
                      (or already-seen
                          (setf (gethash val named-unknowns)
-                               (make-unknown (gethash val constraints)))))
+                               (make-unknown
+                                (when constraints
+                                  (gethash val constraints))))))
                    ;;
                    ;; value param
                    (progn
