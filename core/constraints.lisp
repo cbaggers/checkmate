@@ -55,6 +55,7 @@
   (assert (symbolp satisfies-this-p))
   (destructuring-bind (name . designator-args)
       (uiop:ensure-list designator)
+    (assert (every #'unknown-designator-name-p designator-args))
     (let* ((req-args
             (parse-ttype-lambda-list designator-args))
            (params
