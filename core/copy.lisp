@@ -2,9 +2,11 @@
 
 ;;------------------------------------------------------------
 
-(defun copy-type (type-ref)
+(defun copy-type (type-ref &key named-unknowns)
   (check-type type-ref type-ref)
-  (%copy-type (deref type-ref) (make-hash-table)))
+  (check-type named-unknowns (or null hash-table))
+  (let ((unknowns (or named-unknowns (make-hash-table))))
+    (%copy-type (deref type-ref) unknowns)))
 
 (defun %copy-type (type seen)
   (etypecase type
