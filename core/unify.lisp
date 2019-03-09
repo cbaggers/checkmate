@@ -77,17 +77,18 @@
 ;;------------------------------------------------------------
 
 (defun unify-user-type (a b)
-  (assert (eq (slot-value a 'name)
-              (slot-value b 'name)))
+  ;; Assumes called has already checked 'name's match
   (loop
      :for aparam :across (slot-value a 'arg-vals)
      :for bparam :across (slot-value b 'arg-vals)
      :for a-is-type := (typep aparam 'type-ref)
      :for b-is-type := (typep bparam 'type-ref)
      :for r := (if (or a-is-type b-is-type)
-                   (progn
-                     (assert (and a-is-type b-is-type))
-                     (unify aparam bparam))
+                   (if (and a-is-type b-is-type)
+                       (unify aparam bparam)
+                       (make-instance 'cannot-unify-types
+                                      :type-a aparam
+                                      :type-b bparam))
                    (unify-params aparam bparam))
        :when r :do (return r)))
 
