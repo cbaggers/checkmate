@@ -21,6 +21,7 @@
          (b (deref type-b))
          (a-is-user-type-p (typep a 'user-ttype))
          (b-is-user-type-p (typep b 'user-ttype)))
+    ;; {TODO} isnt (eq a b) more likely?
     (unless (eq type-a type-b)
       (cond
         ((and a-is-user-type-p
@@ -53,6 +54,10 @@
                  (when b-unknown
                    (slot-value b 'constraints))))
            (cond
+             ;; {TODO} can we use the following as earlyout?
+             ;; ((or (eq a b)
+             ;;      (eq (slot-value a 'name) (slot-value b 'name)))
+             ;;  ..)
              ((and a-unknown b-unknown)
               (let ((new (make-naked-unknown
                           (append a-constraints
