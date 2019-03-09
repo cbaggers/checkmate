@@ -74,6 +74,10 @@
   (with-slots (target) type-ref
     (slot-value target 'name)))
 
+(defun constraint-principle-name (constraint-ref)
+  (with-slots (target) constraint-ref
+    (slot-value target 'name)))
+
 (defun to-type (type-system spec named-unknowns constraints args)
   (with-slots (arg-param-specs) spec
     (let* ((constructed
