@@ -61,6 +61,7 @@
              ;;
              ;; param type
              (to-param context
+                       named-unknowns
                        param-spec
                        val)))))
 
@@ -84,8 +85,8 @@
 
 ;;------------------------------------------------------------
 
-(defun ttype-designator-to-param (context val)
-  (designator->type context val))
+(defun ttype-designator-to-param (context val named-unknowns)
+  (designator->type context val named-unknowns))
 
 (defun late-initialize-param-spec (spec)
   (unless (slot-boundp spec 'equal)
@@ -97,11 +98,11 @@
           (when (slot-value spec 'valid-p-name)
             (symbol-function (slot-value spec 'valid-p-name))))))
 
-(defun to-param (context spec val)
+(defun to-param (context named-unknowns spec val)
   (late-initialize-param-spec spec)
   (let ((name (slot-value spec 'name)))
     (if (eq name 'ttype)
-        (ttype-designator-to-param context val)
+        (ttype-designator-to-param context val named-unknowns)
         (let ((valid-p (slot-value spec 'valid-p)))
           (assert (funcall valid-p val) ()
                   "~a is not a valid value to make a ~a type parameter"

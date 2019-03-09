@@ -82,7 +82,7 @@
 
 (defun infer-construct (context designator form)
   ;; Acts as no-op. The form is correctly types so return as is
-  (let ((type (designator->type context designator)))
+  (let ((type (designator->type context designator nil)))
     `(truly-the ,type ,form)))
 
 (defun infer-progn (context body)
@@ -103,7 +103,7 @@
   `(truly-the ,type ,form))
 
 (defun infer-the (context type-designator form)
-  (let* ((type (designator->type context type-designator))
+  (let* ((type (designator->type context type-designator nil))
          (typed-form (check context form type)))
     (assert (eq 'truly-the (first typed-form)))
     `(truly-the ,type ,(third typed-form))))
@@ -214,8 +214,8 @@
            (arg-type-desigs (mapcar #'second args))
            (declarations (group-declarations declarations))
            (processed-arg-types
-            (process-function-arg-specs context arg-type-desigs
-                                        declarations))
+            (process-arg-specs context arg-type-desigs
+                               declarations (make-hash-table)))
            (typed-args (loop
                           :for (name) :in args
                           :for type :across processed-arg-types
@@ -233,13 +233,13 @@
           ,@declarations
           ,typed-body)))))
 
-(defun process-function-arg-specs (context
-                                   arg-type-designators
-                                   declarations)
+(defun process-arg-specs (context
+                          arg-type-designators
+                          declarations
+                          named-unknowns)
   (multiple-value-bind (constraints-lookup constraints)
       (parse-declarations declarations arg-type-designators)
-    (let* ((named-unknowns (make-hash-table))
-           (processed-arg-types
+    (let* ((processed-arg-types
             (mapcar
              (lambda (type)
                (internal-designator-to-type context
@@ -293,10 +293,11 @@
 (defun make-function-ttype (context
                             arg-type-designators
                             return-type-designator
-                            declarations)
+                            &key declarations unknowns)
   (multiple-value-bind (arg-types named-unknowns)
-      (process-function-arg-specs
-       context arg-type-designators declarations)
+      (process-arg-specs
+       context arg-type-designators declarations
+       (or unknowns (make-hash-table)))
     (let ((return-type
            (or (gethash return-type-designator named-unknowns)
                (find-ttype context return-type-designator))))

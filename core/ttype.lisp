@@ -50,21 +50,22 @@
                              :arg-vals vals
                              :known-complete (= len 0))))))))))
 
-(defun find-ttype (type-system-designator type-designator)
-  (designator->type (etypecase type-system-designator
-                      (check-context
-                       type-system-designator)
-                      (type-system
-                       (make-check-context type-system-designator))
-                      (symbol
-                       (make-check-context
-                        (find-type-system type-system-designator))))
-                    type-designator))
+(defun find-ttype (type-system-designator type-designator
+                   &key unknowns declarations)
+  (let ((ctx (type-system-designator->context type-system-designator)))
+    (values
+     (if unknowns
+         (aref (process-arg-specs
+                ctx (list type-designator) declarations unknowns)
+               0)
+         (designator->type ctx type-designator unknowns))
+     unknowns)))
 
 (defmacro ttype (type-system-designator designator)
   (designator->type
    (make-check-context (find-type-system type-system-designator))
-   designator))
+   designator
+   nil))
 
 (defun ttype-of (type-ref)
   (with-slots (target) type-ref
@@ -149,8 +150,10 @@
 
 ;;------------------------------------------------------------
 
-(defun designator->type (type-system type-designator)
-  (internal-designator-to-type type-system nil nil type-designator))
+(defun designator->type (type-system type-designator named-unknowns)
+  (let ((constraints (make-hash-table)))
+    (internal-designator-to-type type-system named-unknowns constraints
+                                 type-designator)))
 
 (defun internal-designator-to-type (context
                                     named-unknowns
@@ -168,15 +171,17 @@
       ;; non user type
       (function
        (assert (= (length designator) 3))
-       (take-ref (make-instance
-                  'tfunction
-                  :arg-types (map 'vector
-                                  (lambda (x)
-                                    (designator->type context x))
-                                  (second designator))
-                  :return-type (designator->type
-                                context
-                                (third designator)))))
+       (take-ref
+        (make-instance
+         'tfunction
+         :arg-types (map 'vector
+                         (lambda (x)
+                           (internal-designator-to-type
+                            context named-unknowns constraints x))
+                         (second designator))
+         :return-type (internal-designator-to-type
+                       context named-unknowns constraints
+                       (third designator)))))
       ;;
       ;; is a user type or unknown
       (otherwise
@@ -205,7 +210,7 @@
                          (error "Could not find type name ~a"
                                 designator))))
                ;;
-               (let ((args (when (listp expanded-designator)
+               (let ((args (unless (atom expanded-designator)
                              (rest expanded-designator))))
                  ;; note: to-type does return a ref
                  (to-type context
