@@ -20,12 +20,17 @@
             (symbol (make-check-context name))
             (type-system (make-check-context name))
             (check-context name))))
-    (with-slots (infer-atom) (slot-value context 'type-system)
-      (if (atom expression)
-          (or (funcall infer-atom context expression)
-              (error "Could not infer the type for the atom ~s"
-                     expression))
-          (infer-form context (first expression) (rest expression))))))
+    (infer-internal context expression)))
+
+(defun infer-internal (context expression)
+  "The type-system equivalent of eval.
+   Assumes the expression is macroexpanded"
+  (with-slots (infer-atom) (slot-value context 'type-system)
+    (if (atom expression)
+        (or (funcall infer-atom context expression)
+            (error "Could not infer the type for the atom ~s"
+                   expression))
+        (infer-form context (first expression) (rest expression)))))
 
 ;;------------------------------------------------------------
 
@@ -162,34 +167,41 @@
                :for i :below arg-len
                :do (setf (aref tmp i) (make-unknown)))
             tmp))
-         (check-type
+         (tmp-func-type
           (make-instance
            'tfunction
            :arg-types arg-types
            :return-type (make-unknown)))
-         (check-type-ref
-          (take-ref check-type))
+         (tmp-func-type-ref
+          (take-ref tmp-func-type))
          (typed-func-form
-          (check context func-form check-type-ref)))
+          (check context func-form tmp-func-type-ref))
+         (partially-infered-arg-forms
+          (mapcar (lambda (arg-form) (infer-internal context arg-form))
+                  arg-forms)))
     (destructuring-bind (typed-arg-forms return-type)
-        (check-funcall context check-type arg-forms
+        (check-funcall tmp-func-type partially-infered-arg-forms
                        `(funcall ,func-form ,@arg-forms))
       `(truly-the ,return-type
                   (funcall ,typed-func-form
                            ,@typed-arg-forms)))))
 
-(defun check-funcall (context func-type arg-forms full-form)
+(defun check-funcall (func-type partially-inferred-arg-forms full-form)
   (with-slots (arg-types return-type) func-type
-    (assert (= (length arg-forms)
+    (assert (= (length partially-inferred-arg-forms)
                (length arg-types))
             () "Incorrect number of args in funtion call:~%~s~%expected ~a"
             full-form
             (length arg-types))
     (let* ((typed-arg-forms
             (loop
-               :for arg-form :in arg-forms
+               :for arg-form :in partially-inferred-arg-forms
                :for arg-type :across arg-types
-               :collect (check context arg-form arg-type))))
+               :for form-type := (type-of-typed-expression arg-form)
+               :do (let ((err (unify form-type arg-type)))
+                     (when err (error err)))
+               ;; if arg-form-type was unknown it should now have been unified
+               :collect `(truly-the ,form-type ,@(cddr arg-form)))))
       (list typed-arg-forms return-type))))
 
 (defun group-declarations (declarations)
