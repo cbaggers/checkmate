@@ -215,14 +215,10 @@
            (processed-arg-types
             (mapcar
              (lambda (type)
-               (if type
-                   (internal-designator-to-type context
-                                                named-unknowns
-                                                constraints-lookup
-                                                type)
-                   (let ((constraints-for-this
-                          (gethash type constraints-lookup)))
-                     (make-unknown constraints-for-this))))
+               (internal-designator-to-type context
+                                            named-unknowns
+                                            constraints-lookup
+                                            type))
              arg-type-designators)))
       (loop
          :for constraint :in constraints
