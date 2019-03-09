@@ -7,14 +7,7 @@
 (defun find-ttype-by-principle-name (type-system-designator
                                      principle-type-name)
   (%find-ttype-by-principle-name
-   (etypecase type-system-designator
-     (check-context
-      type-system-designator)
-     (type-system
-      (make-check-context type-system-designator))
-     (symbol
-      (make-check-context
-       (find-type-system type-system-designator))))
+   (type-system-designator->context type-system-designator)
    principle-type-name))
 
 (defun %find-ttype-by-principle-name (context principle-name)

@@ -2,6 +2,19 @@
 
 ;;------------------------------------------------------------
 
+(declaim (inline type-system-designator->context))
+(defun type-system-designator->context (type-system-designator)
+  (etypecase type-system-designator
+    (check-context
+     type-system-designator)
+    (type-system
+     (make-check-context type-system-designator))
+    (symbol
+     (make-check-context
+      (find-type-system type-system-designator)))))
+
+;;------------------------------------------------------------
+
 (defun make-check-context (type-system-designator)
   (let ((tsys
          (etypecase type-system-designator
