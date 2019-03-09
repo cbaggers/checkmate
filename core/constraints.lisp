@@ -78,22 +78,42 @@
 (defun check-constraints (type-ref constraints)
   (check-type type-ref type-ref)
   (when constraints
-    (let ((type (deref type-ref)))
-      (labels ((unifies-with-constraint (constraint)
-                 (with-slots (satisfies)
-                     (slot-value (deref constraint) 'spec)
-                   (unless (typep type 'unknown)
-                     (handler-case
-                         (funcall satisfies constraint type-ref)
-                       (error () nil))))))
-        (let ((failed
-               (loop
-                  :for constraint :in constraints
-                  :unless (unifies-with-constraint constraint)
-                  :collect (slot-value (deref constraint) 'name))))
-          (when failed
-            (make-instance 'failed-to-satisfy-constraints
-                           :type-ref type-ref
-                           :failed failed)))))))
+    (labels
+        ((unifies-with-constraint (constraint)
+           (let ((raw-constraint (deref constraint)))
+             (with-slots (satisfies)
+                 (slot-value raw-constraint 'spec)
+               (unless (typep (deref type-ref) 'unknown)
+                 ;; {TODO} validate that computed-arg-types are all
+                 ;;        typerefs
+                 (let* ((computed-arg-types
+                         (handler-case
+                             (funcall satisfies constraint type-ref)
+                           (error (e) e)))
+                        (computed-arg-types
+                         (unless (eq t computed-arg-types)
+                           computed-arg-types))
+                        (constraint-args
+                         (slot-value raw-constraint 'arg-vals)))
+                   (if (= (length computed-arg-types)
+                          (length constraint-args))
+                       (loop
+                          :for comp-arg :in computed-arg-types
+                          :for con-arg :across constraint-args
+                          :for err := (unify comp-arg con-arg)
+                          :when err :return err)
+                       (error "BUG: ~a returned an invalid number of args for ~a"
+                              satisfies
+                              (slot-value raw-constraint 'name)))))))))
+      (let ((failed
+             (loop
+                :for constraint :in constraints
+                :for err := (unifies-with-constraint constraint)
+                :unless err
+                :collect (slot-value (deref constraint) 'name))))
+        (when failed
+          (make-instance 'failed-to-satisfy-constraints
+                         :type-ref type-ref
+                         :failed failed))))))
 
 ;;------------------------------------------------------------
