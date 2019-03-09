@@ -9,14 +9,15 @@
 (defun %copy-type (type seen)
   (etypecase type
     (unknown
-     (if (gethash type seen)
-         (take-ref (gethash type seen))
+     ;; unknowns are special as we cache their refs rather
+     ;; than the targets
+     (or (gethash type seen)
          (with-slots (constraints) type
            (let ((new (make-unknown
                        (mapcar (lambda (c)
                                  (%copy-constraint c seen))
                                constraints))))
-             (setf (gethash type seen) (deref new))
+             (setf (gethash type seen) new)
              new))))
     (tfunction
      (take-ref
