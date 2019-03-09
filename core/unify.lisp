@@ -2,9 +2,11 @@
 
 ;;------------------------------------------------------------
 
-(defun unifies-p (type-a type-b)
-  (let* ((type-a (copy-type type-a))
-         (type-b (copy-type type-b))
+(defun unifies-p (type-a type-b &key named-unknowns)
+  (check-type named-unknowns (or null hash-table))
+  (let* ((unknowns (or named-unknowns (make-hash-table)))
+         (type-a (%copy-type (deref type-a) unknowns))
+         (type-b (%copy-type (deref type-b) unknowns))
          (err (unify type-a type-b)))
     (not err)))
 
