@@ -34,14 +34,18 @@
                               context
                               name
                               arg-types-provided-p
-                              arg-types))
-                   (error "Could not get function type for ~a"
-                          name)))))
-    (let ((ftype (find-in-context context)))
-      (etypecase ftype
-        (generalized-function-type
-         (instantiate-function-type ftype))
-        (tfunction ftype)))))
+                              arg-types))))))
+    (multiple-value-bind (ftype new-func-name)
+        (find-in-context context)
+      (if ftype
+          (let ((new-func-name (or new-func-name name)))
+            (values
+             (etypecase ftype
+               (generalized-function-type
+                (instantiate-function-type ftype))
+               (tfunction ftype))
+             new-func-name))
+          (error "Could not get function type for ~a" name)))))
 
 (defun get-binding (context name)
   (labels ((inner (context)
