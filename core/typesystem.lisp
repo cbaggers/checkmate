@@ -72,7 +72,8 @@
           (get-top-level-function-type-name
            :initform ',get-top-level-function-type)
           (get-top-level-function-type
-           :initform (lambda (x y) (,get-top-level-function-type x y)))
+           :initform (lambda (w x y z)
+                       (,get-top-level-function-type w x y z)))
           (get-top-level-var-type-name
            :initform ',get-top-level-var-type)
           (get-top-level-var-type

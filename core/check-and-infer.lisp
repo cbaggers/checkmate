@@ -119,24 +119,39 @@
                     ,typed-body)))))
 
 (defun infer-function-form (context function-designator)
-  (let ((ftype (get-function-type context function-designator)))
-    (assert ftype () "TType: No function named ~a found in current scope"
-            function-designator)
-    `(truly-the ,ftype (function ,function-designator))))
+  (destructuring-bind (name . args)
+      (alexandria:ensure-list function-designator)
+    (let ((ftype (get-function-type context
+                                    name
+                                    (listp function-designator)
+                                    args)))
+      (assert ftype () "TType: No function named ~a found in current scope"
+              function-designator)
+      `(truly-the ,ftype (function ,function-designator)))))
 
 (defun infer-function-call (context name arg-forms)
-  (let ((func-type-ref (get-function-type context name)))
+  (let* (;; we say 'partially' as the function may resolve some unknowns
+         ;; and we arent taking that into account yet
+         (partially-infered-arg-forms
+          (mapcar (lambda (arg-form) (infer-internal context arg-form))
+                  arg-forms))
+         (wip-arg-types
+          (mapcar #'type-of-typed-expression partially-infered-arg-forms))
+         (func-type-ref
+          (get-function-type context name t wip-arg-types)))
     (if func-type-ref
         (let ((func-type (deref func-type-ref)))
           (destructuring-bind (typed-arg-forms return-type)
-              (check-funcall context func-type arg-forms
+              (check-funcall func-type partially-infered-arg-forms
                              `(,name ,@arg-forms))
-            `(truly-the ,return-type
-                        (funcall (truly-the ,func-type-ref (function ,name))
-                                 ,@typed-arg-forms))))
-        (error "Could not find function for call in scope: ~a~%given context:~a"
-               `(,name ,@arg-forms)
-               context))))
+            `(truly-the
+              ,return-type
+              (funcall (truly-the ,func-type-ref (function ,name))
+                       ,@typed-arg-forms))))
+        (error
+         "Could not find function for call in scope: ~a~%given context:~a"
+         `(,name ,@arg-forms)
+         context))))
 
 (defun infer-funcall (context func-form arg-forms)
   (let* ((arg-len

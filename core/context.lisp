@@ -23,7 +23,7 @@
     (make-instance 'check-context
                    :type-system tsys)))
 
-(defun get-function-type (context name)
+(defun get-function-type (context name arg-types-provided-p arg-types)
   (labels ((find-in-context (context)
              (with-slots (function-types parent type-system) context
                (or (when function-types (gethash name function-types))
@@ -32,7 +32,9 @@
                        type-system
                      (funcall get-top-level-function-type
                               context
-                              name))
+                              name
+                              arg-types-provided-p
+                              arg-types))
                    (error "Could not get function type for ~a"
                           name)))))
     (let ((ftype (find-in-context context)))
