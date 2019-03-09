@@ -35,7 +35,9 @@
       (loop :for ref :in refs :do
            (setf (deref ref) new)
            (pushnew ref (slot-value new 'refs)))
-      (setf refs nil))
+      (setf refs nil)
+      (setf (deref x-ref) new)
+      (pushnew x-ref (slot-value new 'refs)))
     x-ref))
 
 ;;------------------------------------------------------------
