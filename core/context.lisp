@@ -24,28 +24,34 @@
                    :type-system tsys)))
 
 (defun get-function-type (context name arg-types-provided-p arg-types)
-  (labels ((find-in-context (context)
-             (with-slots (function-types parent type-system) context
-               (or (when function-types (gethash name function-types))
-                   (when parent (find-in-context parent))
-                   (with-slots (get-top-level-function-type)
-                       type-system
-                     (funcall get-top-level-function-type
-                              context
-                              name
-                              arg-types-provided-p
-                              arg-types))))))
-    (multiple-value-bind (ftype new-func-name)
-        (find-in-context context)
-      (if ftype
-          (let ((new-func-name (or new-func-name name)))
-            (values
-             (etypecase ftype
-               (generalized-function-type
-                (instantiate-function-type ftype))
-               (tfunction ftype))
-             new-func-name))
-          (error "Could not get function type for ~a" name)))))
+  (let ((type-system (slot-value context 'type-system)))
+    (labels ((get-top-lev ()
+               (with-slots (get-top-level-function-type) type-system
+                 (funcall get-top-level-function-type
+                          context
+                          name
+                          arg-types-provided-p
+                          arg-types)))
+             (find-in-context (context)
+               (with-slots (parent) context
+                 (if parent
+                     (multiple-value-bind (ft nn)
+                         (find-in-context parent)
+                       (if ft
+                           (values ft nn)
+                           (get-top-lev)))
+                     (get-top-lev)))))
+      (multiple-value-bind (ftype new-func-name)
+          (find-in-context context)
+        (if ftype
+            (let ((new-func-name (or new-func-name name)))
+              (values
+               (etypecase ftype
+                 (generalized-function-type
+                  (instantiate-function-type ftype))
+                 (tfunction ftype))
+               new-func-name))
+            (error "Could not get function type for ~a" name))))))
 
 (defun get-binding (context name)
   (labels ((inner (context)
