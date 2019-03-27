@@ -83,7 +83,7 @@
 (defun infer-construct (context designator form)
   ;; Acts as no-op. The form is correctly types so return as is
   (let ((type (designator->type context designator nil)))
-    `(truly-the ,type ,form)))
+    `(truly-the ,type (:construct ,form))))
 
 (defun infer-progn (context body)
   (let* ((butlast
