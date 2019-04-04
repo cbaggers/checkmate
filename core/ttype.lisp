@@ -127,26 +127,47 @@
 
 (defun designator-from-type (type)
   (check-type type ttype)
+  (%designator-from-type (make-hash-table) type))
+
+(defun %designator-from-type (visited type)
   (flet ((desig (p)
            (if (typep p 'type-ref)
-               (designator-from-type (deref p))
+               (%designator-from-type visited (deref p))
                (let ((naked-param (deref p))
                      (value (slot-value (deref p) 'value)))
                  (if (typep naked-param 'unknown-param)
                      (slot-value naked-param 'name)
                      value)))))
-    (etypecase type
-      (unknown
-       (slot-value type 'name))
-      (tfunction
-       (with-slots (arg-types return-type) type
-         `(function ,(map 'list #'ttype-of arg-types)
-                    ,(ttype-of return-type))))
-      (user-ttype
-       (with-slots (name arg-vals) type
-         (if (> (length arg-vals) 0)
-             (cons name (map 'list #'desig arg-vals))
-             name))))))
+    (or (gethash type visited)
+        (etypecase type
+          (unknown
+           (slot-value type 'name))
+          (tfunction
+           (let ((wip (list 'function nil nil)))
+             (setf (gethash type visited) wip)
+             (with-slots (arg-types return-type) type
+               (setf (second wip)
+                     (map 'list
+                          (lambda (a)
+                            (with-slots (target) a
+                              (%designator-from-type visited target)))
+                          arg-types))
+               (setf (third wip)
+                     (with-slots (target) return-type
+                       (%designator-from-type visited target)))
+               wip)))
+          (user-ttype
+           (with-slots (name arg-vals) type
+             (if (> (length arg-vals) 0)
+                 (let* ((arg-spaces (make-list (length arg-vals)))
+                        (wip (cons name arg-spaces)))
+                   (setf (gethash type visited) wip)
+                   (loop
+                      :for arg :across arg-vals
+                      :for i :from 1
+                      :do (setf (nth i wip) (desig arg)))
+                   wip)
+                 name)))))))
 
 ;;------------------------------------------------------------
 
