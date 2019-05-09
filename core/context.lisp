@@ -15,13 +15,21 @@
 
 ;;------------------------------------------------------------
 
-(defun make-check-context (type-system-designator)
-  (let ((tsys
-         (etypecase type-system-designator
-           (symbol (find-type-system type-system-designator))
-           (type-system type-system-designator))))
-    (make-instance 'check-context
-                   :type-system tsys)))
+(defun make-check-context (type-system-designator &key user-data)
+  (let* ((tsys
+          (etypecase type-system-designator
+            (symbol (find-type-system type-system-designator))
+            (type-system type-system-designator)))
+         (ctx
+          (make-instance 'check-context-root
+                         :type-system tsys
+                         :user-data user-data)))
+    (setf (slot-value ctx 'root) ctx)
+    ctx))
+
+(defun check-context-user-data (context)
+  (check-type context check-context)
+  (slot-value (slot-value context 'root) 'user-data))
 
 (defun get-function-type (context name arg-types-provided-p arg-types)
   (let ((type-system (slot-value context 'type-system)))
@@ -67,7 +75,8 @@
     (make-instance 'check-context
                    :type-system (slot-value context 'type-system)
                    :variable-bindings bindings
-                   :parent context)))
+                   :parent context
+                   :root (slot-value context 'root))))
 
 (defun add-bindings (context name-type-pairs)
   (let ((bindings (make-hash-table)))
@@ -79,6 +88,7 @@
     (make-instance 'check-context
                    :type-system (slot-value context 'type-system)
                    :variable-bindings bindings
-                   :parent context)))
+                   :parent context
+                   :root (slot-value context 'root))))
 
 ;;------------------------------------------------------------

@@ -58,6 +58,7 @@
 
            :type-system
            :check-context
+           :check-context-user-data
            :user-ttype-spec
            :ttype-parameter-spec
            :constraint-spec

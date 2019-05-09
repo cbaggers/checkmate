@@ -36,7 +36,11 @@
 (defclass check-context ()
   ((type-system :initarg :type-system)
    (variable-bindings :initform nil :initarg :variable-bindings)
-   (parent :initform nil :initarg :parent)))
+   (parent :initform nil :initarg :parent)
+   (root :initform nil :initarg :root)))
+
+(defclass check-context-root (check-context)
+  ((user-data :initform nil :initarg :user-data)))
 
 ;;------------------------------------------------------------
 
