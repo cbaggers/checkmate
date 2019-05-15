@@ -55,6 +55,7 @@
            :construct
            :generalize
            :instantiate-function-type
+           :complete-p
 
            :type-system
            :check-context
