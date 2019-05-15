@@ -18,7 +18,9 @@
           (let ((complete (check-type-complete type)))
             (when complete
               (setf known-complete t))
-            complete)))))
+            complete))))
+  (:method ((type-ref type-ref))
+    (complete-p (deref type-ref))))
 
 (defun check-type-complete (type)
   (etypecase type
